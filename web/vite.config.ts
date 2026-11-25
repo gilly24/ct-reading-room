@@ -24,5 +24,5 @@ export default defineConfig({
   },
   worker: { format: "es" },
   build: { target: "es2022", chunkSizeWarningLimit: 6000 },
-  test: { environment: "node", include: ["src/**/*.test.ts"] },
+  test: { environment: "node", include: ["src/**/*.test.ts", "worker/**/*.test.ts"] },
 });

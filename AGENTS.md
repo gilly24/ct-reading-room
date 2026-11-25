@@ -17,6 +17,7 @@ being added (docs/roadmap.md). It is an educational demo and must stay one
 | `pipeline/` | Python (`ctrr`): DICOM + DICOM SEG in, case bundles out |
 | `web/` | React + TypeScript + Cornerstone3D static site |
 | `web/public/cases/` | Case bundles. Only `phantom-01` is committed |
+| `web/worker/`, `web/wrangler.jsonc` | The Cloudflare Worker that serves the site and real cases from R2 |
 | `docs/` | Everything a newcomer needs; start with getting-started.md |
 
 ## Commands
@@ -27,6 +28,8 @@ cd web && pnpm typecheck && pnpm test && pnpm build
 cd pipeline && uv sync --extra dev && uv run pytest
 cd pipeline && uv run ctrr phantom          # rebuild the synthetic tutorial case
 cd pipeline && uv run ctrr fetch-kits --count 5 && uv run ctrr build-kits
+cd web && pnpm deploy:check                 # wrangler dry run of the Cloudflare deploy
+cd web && pnpm upload-cases                 # put local cases in the R2 bucket (docs/deploying.md)
 ```
 
 ## Rules that matter
@@ -69,6 +72,12 @@ the tab out of memory. `LabelVolume` (`web/src/case/load.ts`) keeps it in a
 private field.
 
 ## Gotchas
+
+- Deploys are Cloudflare Workers Builds from `main` (docs/deploying.md). The
+  `name` in `web/wrangler.jsonc` must match the Worker's name in Cloudflare.
+  The `r2_buckets` binding stays commented out until the bucket exists, or the
+  deploy fails. `caseKey()` in the Worker is the only thing between a URL and a
+  bucket key; keep its test.
 
 - The Vite config leaves `@cornerstonejs/dicom-image-loader`, `metadata` and
   `utils` unbundled in dev, and pre-bundles the CommonJS codecs. Changing that

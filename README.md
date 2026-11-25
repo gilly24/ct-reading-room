@@ -65,6 +65,9 @@ Imaging Data Commons (public CT + SEG)          synthetic phantom
               │
               ▼
    web/  React + Cornerstone3D reading room (static site)
+              │
+              ▼
+   Cloudflare: a Worker serves the site; real scans come from R2
 ```
 
 [docs/architecture.md](docs/architecture.md) explains each part and why it is
@@ -89,7 +92,7 @@ CI runs the same on every push (`.github/workflows/ci.yml`).
 | [case-format.md](docs/case-format.md) | The files a case is made of |
 | [data.md](docs/data.md) | Datasets, licences, and adding more |
 | [roadmap.md](docs/roadmap.md) | What is done and what comes next |
-| [deploying.md](docs/deploying.md) | Putting it online (Vercel + Cloudflare R2) |
+| [deploying.md](docs/deploying.md) | Putting it online (Cloudflare Workers + R2) |
 | [safety.md](docs/safety.md) | The rules this project keeps |
 | [AGENTS.md](AGENTS.md) | Orientation for AI coding agents working in this repo |
 

@@ -1,20 +1,43 @@
 # Deploying
 
-The site is static: a folder of HTML, JavaScript and case files. Any static
-host works. This page uses Vercel for the site and Cloudflare R2 for the cases,
-because real cases are too big for a git repository.
+The site runs on **Cloudflare**: the app as a Worker with static assets, and
+the real scans in an **R2** bucket the Worker reads. One account, free for a
+portfolio's traffic, and R2 charges nothing for data going out, which matters
+when each case is 30–130 MB.
 
-Before it goes public, read [safety.md](safety.md).
+Use a Cloudflare account of your own, not an employer's. Before the link goes
+anywhere, read [safety.md](safety.md).
 
-## The site on Vercel
+```
+browser ──► Worker "ct-reading-room" (web/wrangler.jsonc)
+              ├─ static assets: the app and the tutorial case (from the build)
+              └─ /cases/*  not in the build ──► R2 bucket "ct-reading-room-cases"
+```
 
-1. Import the GitHub repository in Vercel.
-2. Root Directory: `web`. Framework preset: Vite. Build command `pnpm build`,
-   output `dist`. Vercel picks pnpm from the lockfile.
-3. Deploy. With no other settings, the site shows the tutorial case only
-   (it is the only case committed).
+`web/worker/index.ts` is the whole Worker: anything under `/cases/` that the
+build does not have is looked up in the bucket. `/cases/index.json` always
+checks the bucket first, so its list of cases wins. Same origin, so there are
+no CORS rules and the bucket stays private.
 
-## The cases on Cloudflare R2
+## 1. The site (once)
+
+1. Sign up at https://dash.cloudflare.com/sign-up.
+2. **Workers & Pages → Create → Import a repository.** Connect GitHub, choose
+   `ct-reading-room`, and set:
+
+   | setting | value |
+   |---|---|
+   | Project name | `ct-reading-room` (must match `name` in `web/wrangler.jsonc`) |
+   | Root directory | `web` |
+   | Build command | `pnpm build` |
+   | Deploy command | `npx wrangler deploy` (the default) |
+
+3. Deploy. The address is `https://ct-reading-room.<your-subdomain>.workers.dev`.
+   It shows the tutorial case, the only case in the repository.
+
+Every push to `main` builds and deploys again.
+
+## 2. The real scans (once, then whenever you add cases)
 
 1. Build the cases you want online:
 
@@ -24,49 +47,51 @@ Before it goes public, read [safety.md](safety.md).
    uv run ctrr build-kits
    ```
 
-   This writes `web/public/cases/`, including `index.json`.
+2. Create the bucket: **R2 → Create bucket**, named `ct-reading-room-cases`.
+   Leave public access off; the Worker reads it.
 
-2. Create an R2 bucket (for example `ct-reading-room-cases`), turn on public
-   access (its r2.dev URL or a custom domain), and add a CORS rule so the site
-   may read it:
-
-   ```json
-   [
-     {
-       "AllowedOrigins": ["https://your-site.vercel.app", "http://localhost:5173"],
-       "AllowedMethods": ["GET", "HEAD"],
-       "AllowedHeaders": ["*"],
-       "MaxAgeSeconds": 86400
-     }
-   ]
-   ```
-
-3. Upload the folder. [rclone](https://rclone.org/s3/#cloudflare-r2) is the
-   easiest way to sync a folder of files:
+3. Upload. Sign wrangler in once (`pnpm exec wrangler login`, or set
+   `CLOUDFLARE_API_TOKEN` to a token with R2 edit rights), then:
 
    ```bash
-   rclone sync web/public/cases r2:ct-reading-room-cases/cases --progress
+   cd web
+   pnpm upload-cases
    ```
 
-   The phantom goes too, so the bucket's `index.json` and the cases agree.
+   It uploads every case in `web/public/cases`, then `index.json` last, so the
+   list never names a case whose files are not there yet. The list names every
+   case on your machine, so delete a case's folder there before uploading if you
+   do not want it online. `--only kits-00002,kits-00004` re-uploads just those
+   cases (plus the list) after a rebuild.
 
-4. In Vercel, set an environment variable and redeploy:
+4. The first time only, bind the bucket to the Worker: in `web/wrangler.jsonc`,
+   uncomment the `r2_buckets` line, then commit and push. The next deploy serves
+   the scans.
 
-   ```
-   VITE_CASES_URL=https://<your-public-bucket-url>/cases/
-   ```
+Adding cases later is steps 1 and 3 only.
 
-   The site then reads `index.json` and every case from the bucket.
+## Trying it locally, as Cloudflare runs it
 
-Cost: R2 charges nothing for data going out; storage and requests have a free
-monthly allowance, and a few GB of cases sits inside or near it. Check current
-pricing before you rely on that.
+```bash
+cd web
+pnpm build
+pnpm upload-cases --local --only kits-00004   # fills wrangler's local bucket
+pnpm exec wrangler dev                         # http://localhost:8787
+```
 
-## Anywhere else
+With the binding commented out, `wrangler dev` serves only what the build has.
+`pnpm deploy:check` runs the deploy without uploading anything, to check the
+configuration.
 
-`pnpm build` writes `web/dist/`. Upload it to any static host. Cases either sit
-in `dist/cases/` (copied from `public/cases/` by the build) or come from
-`VITE_CASES_URL`.
+## Limits worth knowing
+
+- Static assets: each file at most 25 MiB, and a limited number of files per
+  deploy. The app's largest file is about 4 MB. Cases go to R2, not the build,
+  so neither limit is close.
+- Requests for scans run the Worker, and the free plan includes a daily
+  allowance of Worker requests. One read of a 260-slice case is about 270
+  requests. Check current limits on Cloudflare's pricing page before you share
+  the link widely.
 
 ## Checklist before sharing the link
 

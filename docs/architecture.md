@@ -1,8 +1,9 @@
 # Architecture
 
 Two halves joined by a file format: a Python pipeline that makes cases, and a
-static website that reads them. Nothing runs on a server, which keeps the site
-cheap to host and means no visitor's data is ever received.
+static website that reads them. Online, a small Cloudflare Worker
+(`web/worker/index.ts`) serves the site and hands out case files from a
+storage bucket; it never receives anything from a visitor (deploying.md).
 
 ```
             pipeline (Python, offline)                      web (browser)
@@ -93,8 +94,9 @@ findings.
   hand-in, scoring and the report panel are custom UI that OHIF's mode and
   extension system would fight. Cornerstone is OHIF's engine, so the viewer
   behaves the same and the skills carry over.
-- **A static site.** Cases are files; the site is files. No server means no
-  running cost, no uploads and nothing to secure but the build.
+- **A static site.** Cases are files; the site is files. The only code that
+  runs online is the Worker that reads case files from R2 by path, so there is
+  no running cost, no uploads and almost nothing to secure.
 - **No uploads, ever.** See safety.md.
 - **Labels as one gzipped byte volume**, not DICOM SEG, in the browser. It is
   one fetch, about 100 kB for a whole case, and needs no parser. The pipeline
