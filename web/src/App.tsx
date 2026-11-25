@@ -37,7 +37,8 @@ export function App() {
           CT Reading Room
         </a>
         <span className="badge" title="Nothing here may be used to diagnose or treat anyone.">
-          Educational demo · not for clinical use
+          <span className="badge-wide">Educational demo · not for clinical use</span>
+          <span className="badge-narrow">Not for clinical use</span>
         </span>
         <a className="repo" href={REPO_URL} target="_blank" rel="noopener noreferrer">
           Source
