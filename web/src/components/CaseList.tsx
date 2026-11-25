@@ -74,6 +74,10 @@ export function CaseList({ onCases }: { onCases(cases: CaseSummary[]): void }) {
           <a href="https://portal.imaging.datacommons.cancer.gov/collections/c4kc_kits">NCI Imaging Data Commons</a>. They
           are de-identified public research scans. The tutorial case is synthetic: nobody's scan.
         </p>
+        <p>
+          Made by Gilly. The code is open source (MIT) on{" "}
+          <a href="https://github.com/gilly24/ct-reading-room">GitHub</a>.
+        </p>
       </section>
     </div>
   );
