@@ -26,10 +26,13 @@ export function CaseList({ onCases }: { onCases(cases: CaseSummary[]): void }) {
         </p>
         <ul className="how">
           <li>
-            <b>Scroll</b> with the mouse wheel or arrow keys.
+            <b>Scroll</b> by dragging up and down, with the wheel, or with the arrow keys.
           </li>
           <li>
-            <b>Window</b> with presets 1–4, or drag with the Window tool.
+            <b>Window</b> with a right-drag, or presets 1–4. Right-click for the menu.
+          </li>
+          <li>
+            <b>Coronal and sagittal</b> views sit beside the axial one: drag a crosshair line to move through them.
           </li>
           <li>
             <b>Measure</b> (M) a lesion's longest diameter on the image where it is biggest.

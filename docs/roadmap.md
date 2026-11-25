@@ -7,7 +7,7 @@ Each milestone ends with something that works on its own and is worth showing.
 - [x] Pipeline: CT DICOM + DICOM SEG → case bundle, geometry checks, RECIST-style measurements
 - [x] Synthetic phantom with known answers, used as tutorial and test fixture
 - [x] C4KC-KiTS fetch from Imaging Data Commons
-- [x] Browser DICOM viewer: scroll, window presets, pan, zoom, length tool, R/L markers
+- [x] Browser DICOM viewer: scroll, window presets, pan, zoom, length tool, orientation markers
 - [x] Simulator: hand in, score (found, false positives, size error, time), reference outlines and measurements
 - [x] Report drafted from measurements, impression left to the reader
 - [x] Works at phone width
@@ -59,5 +59,6 @@ reader's and the reference.
       downloads.
 - [x] Load the slices near the current one first, so a big case opens sooner.
 - [ ] Remember a reader's attempts in the browser (localStorage) and show progress across cases.
-- [ ] Coronal and sagittal views (Cornerstone volume viewports).
+- [x] Coronal and sagittal views beside the axial one, with crosshair lines that move them,
+      and PACS mouse controls (drag to scroll, right-drag to window, right-click menu).
 - [ ] Keyboard help overlay (`?`).

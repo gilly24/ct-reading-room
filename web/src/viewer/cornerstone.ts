@@ -30,7 +30,9 @@ export function initCornerstone(): Promise<void> {
   return ready;
 }
 
+/** What a left-button drag does. Scroll is the default, as on a PACS. */
 export const TOOLS = {
+  scroll: StackScrollTool.toolName,
   window: WindowLevelTool.toolName,
   pan: PanTool.toolName,
   zoom: ZoomTool.toolName,
