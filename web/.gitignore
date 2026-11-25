@@ -1,0 +1,6 @@
+node_modules
+dist
+public/codecs
+# Downloaded cases are hosted, not committed (docs/deploying.md). Only the synthetic tutorial is.
+public/cases/*
+!public/cases/phantom-01

@@ -1,0 +1,299 @@
+{
+ "schema": 1,
+ "caseId": "phantom-01",
+ "note": "The phantom's own geometry: these are exactly the lesions drawn into it.",
+ "labels": {
+  "file": "labels.u8.gz",
+  "encoding": "uint8, gzip, C order (slice, row, column), same slice order as images",
+  "shape": [
+   48,
+   192,
+   192
+  ],
+  "classes": {
+   "1": "kidney",
+   "2": "tumour",
+   "3": "cyst",
+   "4": "liver",
+   "6": "spleen"
+  }
+ },
+ "lesions": [
+  {
+   "id": "T1",
+   "kind": "tumour",
+   "organ": "kidney",
+   "side": "left",
+   "pole": "upper",
+   "sliceRange": [
+    16,
+    23
+   ],
+   "keySlice": 19,
+   "longAxisMm": 35.3,
+   "shortAxisMm": 34.6,
+   "volumeCm3": 20.53,
+   "meanHu": 69,
+   "longAxis": {
+    "slice": 19,
+    "from": [
+     129.0,
+     154.0
+    ],
+    "to": [
+     118.0,
+     139.0
+    ]
+   },
+   "centroidWorld": [
+    92.0,
+    50.0,
+    -78.0
+   ],
+   "boxes": [
+    [
+     16,
+     118,
+     142,
+     128,
+     151
+    ],
+    [
+     17,
+     116,
+     139,
+     130,
+     154
+    ],
+    [
+     18,
+     115,
+     138,
+     132,
+     155
+    ],
+    [
+     19,
+     114,
+     138,
+     132,
+     155
+    ],
+    [
+     20,
+     114,
+     138,
+     132,
+     155
+    ],
+    [
+     21,
+     115,
+     138,
+     132,
+     155
+    ],
+    [
+     22,
+     116,
+     139,
+     130,
+     154
+    ],
+    [
+     23,
+     118,
+     142,
+     128,
+     151
+    ]
+   ]
+  },
+  {
+   "id": "T2",
+   "kind": "tumour",
+   "organ": "kidney",
+   "side": "right",
+   "pole": "lower",
+   "sliceRange": [
+    31,
+    33
+   ],
+   "keySlice": 32,
+   "longAxisMm": 16.3,
+   "shortAxisMm": 16.3,
+   "volumeCm3": 1.72,
+   "meanHu": 91,
+   "longAxis": {
+    "slice": 32,
+    "from": [
+     137.0,
+     52.0
+    ],
+    "to": [
+     133.0,
+     45.0
+    ]
+   },
+   "centroidWorld": [
+    -84.1,
+    69.9,
+    -128.0
+   ],
+   "boxes": [
+    [
+     31,
+     131,
+     46,
+     137,
+     52
+    ],
+    [
+     32,
+     131,
+     45,
+     138,
+     52
+    ],
+    [
+     33,
+     131,
+     46,
+     137,
+     52
+    ]
+   ]
+  },
+  {
+   "id": "C1",
+   "kind": "cyst",
+   "organ": "kidney",
+   "side": "right",
+   "pole": "interpolar",
+   "sliceRange": [
+    23,
+    27
+   ],
+   "keySlice": 25,
+   "longAxisMm": 19.6,
+   "shortAxisMm": 18.3,
+   "volumeCm3": 3.07,
+   "meanHu": 18,
+   "longAxis": {
+    "slice": 25,
+    "from": [
+     131.0,
+     47.0
+    ],
+    "to": [
+     124.0,
+     40.0
+    ]
+   },
+   "centroidWorld": [
+    -94.1,
+    58.1,
+    -100.0
+   ],
+   "boxes": [
+    [
+     23,
+     126,
+     42,
+     129,
+     45
+    ],
+    [
+     24,
+     124,
+     39,
+     132,
+     47
+    ],
+    [
+     25,
+     123,
+     39,
+     132,
+     48
+    ],
+    [
+     26,
+     124,
+     39,
+     132,
+     47
+    ],
+    [
+     27,
+     126,
+     42,
+     129,
+     45
+    ]
+   ]
+  },
+  {
+   "id": "C2",
+   "kind": "cyst",
+   "organ": "liver",
+   "side": "right",
+   "pole": null,
+   "sliceRange": [
+    6,
+    9
+   ],
+   "keySlice": 7,
+   "longAxisMm": 16.6,
+   "shortAxisMm": 16.6,
+   "volumeCm3": 2.2,
+   "meanHu": 24,
+   "longAxis": {
+    "slice": 7,
+    "from": [
+     86.0,
+     44.0
+    ],
+    "to": [
+     94.0,
+     42.0
+    ]
+   },
+   "centroidWorld": [
+    -95.2,
+    -9.9,
+    -30.0
+   ],
+   "boxes": [
+    [
+     6,
+     88,
+     40,
+     92,
+     45
+    ],
+    [
+     7,
+     86,
+     39,
+     94,
+     47
+    ],
+    [
+     8,
+     86,
+     39,
+     94,
+     47
+    ],
+    [
+     9,
+     88,
+     40,
+     92,
+     45
+    ]
+   ]
+  }
+ ]
+}

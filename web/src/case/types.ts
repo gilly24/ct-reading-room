@@ -1,0 +1,80 @@
+// The files a case is made of. docs/case-format.md describes them, and
+// pipeline/ctrr/bundle.py writes them; change all three together.
+
+export type CaseSummary = {
+  id: string;
+  title: string;
+  description: string;
+  slices: number;
+  dataset: string | null;
+  hasAi: boolean;
+};
+
+export type CaseIndex = { schema: 1; cases: CaseSummary[] };
+
+export type CaseSource = {
+  dataset: string;
+  collection: string | null;
+  citation: string;
+  url: string | null;
+  licence: string;
+  patient?: string;
+  doi?: string;
+};
+
+export type CaseMeta = {
+  schema: 1;
+  id: string;
+  title: string;
+  modality: "CT";
+  description: string;
+  patient: { age?: number; sex?: "M" | "F" };
+  geometry: {
+    rows: number;
+    columns: number;
+    slices: number;
+    pixelSpacingMm: [number, number];
+    sliceSpacingMm: number;
+    sliceThicknessMm: number | null;
+    order: "head-first";
+  };
+  window: { center: number; width: number };
+  images: string[];
+  source: CaseSource;
+  truth: string | null;
+  ai: string | null;
+};
+
+/** (row, column) in pixels on one slice. */
+export type PixelPoint = [number, number];
+
+export type Lesion = {
+  id: string;
+  kind: "tumour" | "cyst";
+  organ: string | null;
+  side: "left" | "right" | null;
+  pole: "upper" | "interpolar" | "lower" | null;
+  sliceRange: [number, number];
+  keySlice: number;
+  longAxisMm: number;
+  shortAxisMm: number;
+  volumeCm3: number;
+  meanHu: number;
+  longAxis: { slice: number; from: PixelPoint; to: PixelPoint };
+  centroidWorld: [number, number, number];
+  /** [slice, row0, col0, row1, col1], one per slice the lesion is on. */
+  boxes: [number, number, number, number, number][];
+};
+
+export type Truth = {
+  schema: 1;
+  caseId: string;
+  note: string;
+  labels: {
+    file: string;
+    encoding: string;
+    shape: [number, number, number];
+    classes: Record<string, string>;
+  };
+  lesions: Lesion[];
+};
