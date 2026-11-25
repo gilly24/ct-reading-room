@@ -22,9 +22,11 @@
 | Outlines | semi-automatic, by the KiTS19 team; tumours are labelled "Mass" |
 | Watch out | Cysts were not outlined, so a cyst a reader measures counts as a false positive (the answer panel says so). Each study has several phases; the SEG names the one it was drawn on, and only that one is downloaded. |
 
-The CT files are 0.5–1 MB a slice, so a 260-slice case is about 130 MB. For
-the website, prefer studies under about 100 slices (`--max-slices 100`) until
-the DICOM is compressed (roadmap).
+The original CT files are about 0.5 MB a slice. The pipeline recompresses them
+losslessly as HTJ2K, 2.5–3× smaller: the 261-slice kits-00002 goes from 138 MB
+to 47 MB. The viewer shows the first image before the rest arrive, so case size
+now decides how long the whole case takes to fill in, not how long the first
+image takes.
 
 ### Synthetic phantom
 

@@ -39,6 +39,8 @@ export type CaseMeta = {
     order: "head-first";
   };
   window: { center: number; width: number };
+  /** CT files, one DICOM per slice, head first. The pipeline writes them as lossless
+   *  HTJ2K; the loader reads each file's transfer syntax, so older uncompressed bundles open too. */
   images: string[];
   source: CaseSource;
   truth: string | null;

@@ -8,7 +8,7 @@ cases/
   index.json              every case, with nothing that gives answers away
   <id>/                   lowercase letters, digits and dashes
     case.json             what the viewer needs before the read
-    ct/0000.dcm …         the CT, one DICOM file per slice, head first
+    ct/0000.dcm …         the CT, one DICOM file per slice, head first, lossless HTJ2K
     truth.json            the reference lesions, loaded only at hand-in
     labels.u8.gz          the reference outlines, loaded only at hand-in
     ai.json               (milestone 2) the AI's findings
@@ -42,7 +42,13 @@ Generated, never committed: by `scripts/case-index.mjs` before `pnpm dev` and
 | `truth` | file name of the reference, or `null` |
 | `ai` | file name of the AI findings, or `null` |
 
-The CT files are the original DICOM, copied unchanged and renamed by position.
+The CT files are the original DICOM, renamed by position, with the pixels
+recompressed as lossless HTJ2K (transfer syntax `1.2.840.10008.1.2.4.201`),
+about a third of the size. Every other element is kept, the SOP Instance UID
+included. The pipeline decodes each slice again before writing it and stops if
+any pixel value differs (`write_htj2k` in `bundle.py`; `tests/test_htj2k.py`
+checks with a second decoder). The viewer reads the transfer syntax from each
+file, so a bundle built before this, with uncompressed files, still opens.
 
 ## truth.json
 

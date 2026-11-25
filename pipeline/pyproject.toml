@@ -3,7 +3,7 @@ name = "ctrr"
 version = "0.1.0"
 description = "CT Reading Room case pipeline: turns CT DICOM + DICOM SEG into cases the web app can load."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "MIT"
 dependencies = [
   "numpy>=2.0",
@@ -11,10 +11,13 @@ dependencies = [
   "pydicom>=3.0",
   "highdicom>=0.29",
   "idc-index>=0.13",
+  # Writes the HTJ2K codestreams (OpenJPH). pydicom has no HTJ2K encoder.
+  "imagecodecs>=2026.11.11",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+# pylibjpeg-openjpeg lets pydicom decode HTJ2K with OpenJPEG, a second decoder for the round-trip test.
+dev = ["pytest>=8", "pylibjpeg>=2.0", "pylibjpeg-openjpeg>=2.4"]
 
 [project.scripts]
 ctrr = "ctrr.cli:main"
