@@ -323,10 +323,17 @@ def _convert(result: CaseResult, study_dir: Path, expected_slices: int, paths: t
         labelled_slices=[int(labelled[0]), int(labelled[-1])] if len(labelled) else None,
         pixel_sha1=hashlib.sha1(np.ascontiguousarray(image).data).hexdigest(),
     )
+    # Worth knowing, not worth leaving a case out for: nnU-Net's CT normalisation
+    # clips every image to the 0.5-99.5 percentiles of outlined voxels anyway.
+    below, above = int((image < -1024).sum()), int((image > 3071).sum())
+    if below:
+        result.warnings.append(f"HU below -1024: {below:,} voxels, down to {image.min()} (outside the scanned circle?)")
+    if above:
+        result.warnings.append(f"HU above 3071: {above:,} voxels, up to {image.max()} (metal?)")
     if not counts[1]:
         result.problems.append("no kidney outlined")
     if not counts[2]:
-        result.warnings.append("no tumour outlined")
+        result.warnings.append("no tumour: the SEG outlines none")
     if counts[1] and facts["kidney_mean_hu"] < 0:
         result.problems.append(
             f"the kidney outline averages {facts['kidney_mean_hu']} HU, fat or air: is it on the wrong voxels?"
@@ -381,7 +388,11 @@ def _check_stack(result: CaseResult, ct: CtSeries) -> Geometry:
     if None not in numbers:
         steps = np.diff([int(n) for n in numbers])
         if not ((steps > 0).all() or (steps < 0).all()):
-            result.warnings.append("InstanceNumber does not follow slice position")
+            result.warnings.append("InstanceNumber out of order: it does not follow slice position")
+    if not _close([*row, *col], [1, 0, 0, 0, 1, 0], 1e-3):
+        # Fine for nnU-Net, which trains on the array; the direction matrix keeps the rest right.
+        angle = np.degrees(np.arctan2(row[1], row[0]))
+        result.warnings.append(f"not the usual orientation: rows run {angle:.1f} degrees from patient left")
 
     result.facts.update(
         slices=ct.shape[0],
@@ -584,6 +595,7 @@ def _summarise(results: list[dict], split: dict, folds: list[dict], fetched: set
         "with_tumour": sum(f["has_tumour"] for f in facts),
         "without_tumour": sum(not f["has_tumour"] for f in facts),
         "warnings": {r["patient_id"]: r["warnings"] for r in results if r["warnings"]},
+        "warning_counts": dict(Counter(w.split(":")[0] for r in results for w in r["warnings"])),
         "orientations": dict(Counter(" ".join(f"{v:g}" for v in f["orientation"]) for f in facts)),
         "ranges": {
             "slices": _range([f["slices"] for f in facts]),
@@ -630,8 +642,10 @@ def render_report(summary: dict, results: list[dict]) -> str:
         lines.append("None.")
     if summary["not_fetched"]:
         lines += ["", f"Not fetched: {', '.join(summary['not_fetched'])}"]
-    lines += ["", "## Warnings", ""]
+    lines += ["", "## Warnings", "", "Not reasons to leave a case out, but worth knowing.", ""]
     if summary["warnings"]:
+        lines += [f"- {kind}: {n} cases" for kind, n in summary["warning_counts"].items()]
+        lines.append("")
         lines += [f"- {patient}: {'; '.join(w)}" for patient, w in summary["warnings"].items()]
     else:
         lines.append("None.")

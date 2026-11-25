@@ -23,7 +23,7 @@ downloaded.
 | SEGs | 210, 3.0 GB; each has two segments, "Kidney" and "Mass" |
 | Whole collection, for comparison | 411 CT series, 36.8 GB |
 | Labels for training | 0 background, 1 kidney, 2 tumour (the SEG's "Mass"); where outlines overlap, tumour wins |
-| Not outlined | cysts: KiTS19 has no cyst label, so the model has no idea of a cyst as such |
+| Not outlined | cysts: KiTS19 has no cyst label, so the model never learns what a cyst is |
 
 The sizes come from idc-index's `seg_index` (IDC data release v25), which links
 each SEG to the series it outlines, so they were known before anything was
@@ -105,7 +105,56 @@ must share one geometry.
 
 ### Result
 
-<!-- train-data result -->
+Run on 2026-11-26 on IDC data release v25. The full per-case report is
+`validation.md` and `validation.json` next to the data. It stays out of the
+repository because it lists every case's tumour volume, and the repository
+does not give the website's answers away.
+
+| | |
+|---|---|
+| Studies fetched | 210 of 210 |
+| Passed every check | **210** |
+| Left out | none |
+| Training / held-out test | **170 / 40**; all five website cases are among the 40 |
+| Cross-validation folds | 5, each 136 training / 34 validation patients |
+| Tumour outlined | 210 of 210 (every KiTS19 patient had a kidney tumour) |
+| nnU-Net's `verify_dataset_integrity` | passes (nnunetv2 2.8.1) |
+| On disk | 26 GB of DICOM in, 12 GB of compressed NIfTI out |
+
+| over the 210 cases | min | median | max |
+|---|---|---|---|
+| slices | 29 | 107 | 1,059 |
+| image size | 512 × 512 | 512 × 512 | 512 × 796 (one case) |
+| pixel spacing | 0.44 mm | 0.78 mm | 1.04 mm |
+| slice spacing | 0.5 mm | 3 mm | 5 mm |
+| slice thickness | 1 mm | 3 mm | 5 mm |
+| kidney volume (label 1) | 91 mL | 408 mL | 1,023 mL |
+| tumour volume (label 2) | 0.8 mL | 29 mL | 1,464 mL |
+| mean HU under the kidney outline | 30 | 104 | 213 |
+
+No series has gantry tilt or uneven slice gaps: the largest sideways drift
+and the largest spread of gaps were both 0.00 mm. Slice spacing varies
+tenfold, which nnU-Net handles by resampling every case to one target spacing.
+
+These warnings were kept in the data:
+
+- 47 cases have voxels below −1024 HU. Mostly they are −2048, a value
+  scanners commonly give the area outside the scanned circle; a few go down
+  to −10,240.
+- 7 cases have metal above 3071 HU, up to 18,558.
+
+  Neither matters to training. nnU-Net's CT normalisation clips every image
+  to the 0.5 to 99.5 percentiles of the outlined voxels across the training
+  set before the network sees it.
+- One case (KiTS-00160) is rotated 4° in-plane. Its direction matrix records
+  the rotation. nnU-Net trains on the array, and its rotation augmentation
+  turns images by far more than 4°.
+
+The most extreme cases were also checked by eye with the outlines drawn over
+the image: the lowest kidney HU, the lowest tumour HU, the rotated and the
+widest series, the finest pixels, the largest and smallest tumour and kidney,
+and the most and fewest slices. Every outline sat on its kidney or tumour,
+and the liver was on the patient's right.
 
 ## The split
 
@@ -179,7 +228,7 @@ On the GPU machine (Linux, Python 3.11 or later, an NVIDIA driver):
 # PyTorch first, built for the machine's CUDA (https://pytorch.org/get-started/locally/).
 # nnU-Net's docs: "DO NOT JUST pip install nnunetv2 WITHOUT PROPERLY INSTALLING PYTORCH FIRST".
 pip install torch
-pip install nnunetv2            # 2.9.0 when this was written
+pip install nnunetv2            # 2.8.1 on PyPI when this was written
 
 export nnUNet_raw=$HOME/nnunet/raw
 export nnUNet_preprocessed=$HOME/nnunet/preprocessed
