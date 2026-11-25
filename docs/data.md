@@ -28,6 +28,10 @@ to 47 MB. The viewer shows the first image before the rest arrive, so case size
 now decides how long the whole case takes to fill in, not how long the first
 image takes.
 
+All 210 studies are also the AI's training data: 23.5 GB of outlined CT plus
+3 GB of SEGs, split once into 170 training and 40 held-out patients
+([training.md](training.md)). The website shows only held-out patients.
+
 ### Synthetic phantom
 
 `pipeline/ctrr/phantom.py`. Nobody's scan; MIT like the code. It is the

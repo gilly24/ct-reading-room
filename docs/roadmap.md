@@ -19,6 +19,10 @@ reader's and the reference.
 
 - [ ] Train nnU-Net v2 (ResEnc preset) on KiTS (kidney + tumour). Hold out whole
       cases; never test on a case it trained on.
+  - [x] Training data: `ctrr train-data` checks all 210 C4KC-KiTS studies and
+        writes the nnU-Net dataset; a fixed split holds out 40 patients,
+        including every case the website shows ([training.md](training.md))
+  - [ ] Train on a rented GPU and test once on the held-out patients
 - [ ] `ctrr ai`: run the model on a case, measure its output with the same
       `findings.py`, write `ai.json` (same lesion shape as `truth.json`) and
       `ai-labels.u8.gz`.
