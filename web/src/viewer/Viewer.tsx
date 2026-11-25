@@ -24,8 +24,13 @@ import type { CaseMeta, Lesion, PixelPoint } from "../case/types";
 import type { Mark } from "../read/marks";
 import { initCornerstone, TOOLS, type ToolChoice } from "./cornerstone";
 import { paintOutlines, type PixelTransform, SliceCache } from "./outlines";
+import { SliceQueue } from "./slices";
 
 const VIEWPORT_ID = "axial";
+/** Images fetched before the first is shown: the opening image and the ones after it, so the first scrolls are smooth. */
+const FIRST_IMAGES = 5;
+/** Images fetched at once. */
+const PARALLEL = 6;
 let mountCount = 0;
 
 /** A measurement as the viewer knows it: geometry only. The reading room adds the kind. */
@@ -76,6 +81,7 @@ type Live = {
   imageIds: string[];
   rows: number;
   columns: number;
+  queue: SliceQueue;
 };
 
 export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines, onMarks, onReady, onSlice, ref }: Props) {
@@ -114,6 +120,7 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
       frame = requestAnimationFrame(() => {
         if (!live.current) return;
         const next = readView(live.current, referenceRef.current);
+        live.current.queue.focus = next.slice;
         setView(next);
         callbacks.current.onSlice(next.slice);
         drawOutlines(next);
@@ -140,14 +147,18 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
       ToolEnums.Events.ANNOTATION_REMOVED,
     ];
 
+    let loaded = 0;
+    setProgress({ loaded, total: imageIds.length });
+    const queue = new SliceQueue(imageIds.length, async (slice) => {
+      await imageLoader.loadAndCacheImage(imageIds[slice]);
+      if (!cancelled) setProgress({ loaded: ++loaded, total: imageIds.length });
+    });
+
     (async () => {
       try {
         await initCornerstone();
-        let loaded = 0;
-        await inBatches(imageIds, 8, async (id) => {
-          await imageLoader.loadAndCacheImage(id);
-          if (!cancelled) setProgress({ loaded: ++loaded, total: imageIds.length });
-        });
+        // The first image waits only for itself and its neighbours...
+        await queue.take(FIRST_IMAGES, PARALLEL);
         if (cancelled) return;
 
         const engine = new RenderingEngine(engineId);
@@ -175,12 +186,23 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
           engine.destroy();
           return;
         }
-        live.current = { engine, viewport, toolGroupId, imageIds, rows: meta.geometry.rows, columns: meta.geometry.columns };
+        live.current = {
+          engine,
+          viewport,
+          toolGroupId,
+          imageIds,
+          rows: meta.geometry.rows,
+          columns: meta.geometry.columns,
+          queue,
+        };
         setPrimaryTool(toolGroupId, "window", true);
         el.addEventListener(Enums.Events.IMAGE_RENDERED, redraw);
         for (const name of annotationEvents) eventTarget.addEventListener(name, emitMarks);
         redraw();
         callbacks.current.onReady();
+        // ...and the rest arrive while the case is read, nearest the image on screen first.
+        // An image the reader scrolls to before its turn is fetched by the viewport there and then.
+        await queue.take(Infinity, PARALLEL);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       }
@@ -188,6 +210,7 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
 
     return () => {
       cancelled = true;
+      queue.stop();
       cancelAnimationFrame(frame);
       el.removeEventListener(Enums.Events.IMAGE_RENDERED, redraw);
       for (const name of annotationEvents) eventTarget.removeEventListener(name, emitMarks);
@@ -222,12 +245,14 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
         const current = live.current;
         if (!current) return;
         const clamped = Math.max(0, Math.min(current.imageIds.length - 1, slice));
+        current.queue.focus = clamped;
         void current.viewport.setImageIdIndex(clamped);
       },
       step(delta) {
         const current = live.current;
         if (!current) return;
         const next = Math.max(0, Math.min(current.imageIds.length - 1, current.viewport.getCurrentImageIdIndex() + delta));
+        current.queue.focus = next;
         void current.viewport.setImageIdIndex(next);
       },
       setWindow(width, center) {
@@ -255,6 +280,7 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
   );
 
   const total = meta.images.length;
+  const first = Math.min(FIRST_IMAGES, total);
   return (
     <div className="viewer">
       <div className="viewer-canvas" ref={element} onContextMenu={(e) => e.preventDefault()} />
@@ -287,6 +313,12 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
           </div>
           <div className="corner top-right">
             Im {view.slice + 1} / {total}
+            {progress.loaded < total && (
+              <>
+                <br />
+                {progress.loaded} / {total} loaded
+              </>
+            )}
           </div>
           <div className="corner bottom-left">
             W {Math.round(view.width)} L {Math.round(view.center)}
@@ -301,9 +333,9 @@ export function Viewer({ meta, tool, canMeasure, reference, labels, showOutlines
       {!view && !error && (
         <div className="viewer-status">
           <div>
-            Loading images {progress.loaded} / {progress.total}
+            Loading images {Math.min(progress.loaded, first)} / {first}
           </div>
-          <progress max={progress.total} value={progress.loaded} />
+          <progress max={first} value={Math.min(progress.loaded, first)} />
         </div>
       )}
       {error && (
@@ -452,12 +484,4 @@ function sideOf(imageId: string, worldX: number, rows: number, columns: number):
   if (!middle) return null;
   // DICOM patient coordinates: +x is the patient's left.
   return worldX > middle[0] ? "left" : "right";
-}
-
-async function inBatches<T>(items: T[], size: number, run: (item: T) => Promise<void>) {
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) await run(items[next++]);
-  };
-  await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker));
 }
