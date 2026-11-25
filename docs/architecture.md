@@ -58,16 +58,42 @@ through exactly the same build as a downloaded case, so the tests in
 
 ## Website (`web/src`)
 
-**Viewer** (`viewer/Viewer.tsx`). One Cornerstone3D stack viewport. The first
-image shows as soon as it and the four after it have arrived; the rest are
-fetched while the case is read, six at a time, always the waiting image nearest
-the one on screen (`viewer/slices.ts`), so a reader who jumps ahead gets that
-part of the case next. An image scrolled to before its turn is fetched there
-and then. The files are lossless HTJ2K, decoded by WebAssembly. Tools: window
-and level, pan (middle button), zoom (right button), stack scroll (wheel) and
-length. The left button follows the toolbar. Corner text and R/L markers are
-drawn by React over the canvas. Reference boxes and long axes are an SVG layer
-positioned with the viewport's own world-to-canvas transform.
+**Viewer** (`viewer/Viewer.tsx`). Three views, laid out as on a PACS: axial
+large on the right, sagittal and coronal stacked on the left; double-click (or
+F) shows one view alone, and phones always show one with a switch. Axial is a
+Cornerstone3D stack viewport. Its first image shows as soon as it and the four
+after it have arrived; the rest are fetched while the case is read, six at a
+time, always the waiting image nearest the one on screen (`viewer/slices.ts`),
+so a reader who jumps ahead gets that part of the case next. An image scrolled
+to before its turn is fetched there and then. The files are lossless HTJ2K,
+decoded by WebAssembly.
+
+Coronal and sagittal are volume viewports cut from one streaming volume built
+from the same images. Cornerstone needs only the first, middle and last image to
+place it, so the side views appear just after the axial one and fill in as the
+images arrive; images are shared through Cornerstone's cache, so none is
+fetched twice. Thin-slice cases (1 mm) reconstruct cleanly; 3 to 4 mm cases
+look stepped from the side, as they would on any workstation.
+
+Mouse, as on a PACS: the wheel or a left drag scrolls, a right drag sets the
+window, a middle (or Shift) drag pans, Ctrl with a drag or the wheel zooms, and
+a right click without a drag opens a menu of tools and presets. The toolbar
+changes what the left button does; measuring is on axial images only, because
+scoring and the report count by axial image number. Every tool's bindings are
+cleared before new ones are set, since Cornerstone adds to them otherwise.
+
+Crosshair lines show where each view's plane cuts the other two, in that view's
+colour. The point they cross at is where the three planes meet
+(`viewer/mpr.ts`, pure, unit-tested), so there is no separate crosshair state
+to drift: scrolling any view moves its line in the others. A press near a line
+is caught before Cornerstone sees it and drags that line, moving its view (the
+axial view to the nearest image); near the crossing, both lines move. The
+window is one setting across the three views. Corner text, the patient
+direction at each edge (worked out from each view's camera, so radiological
+convention follows) and a small figure showing where the view cuts the body
+(`viewer/Figure.tsx`) are drawn by React over the canvases. Reference boxes and
+long axes are an SVG layer positioned with the axial viewport's own
+world-to-canvas transform.
 
 **Outlines** (`viewer/outlines.ts`). After hand-in, the label volume is drawn
 over the CT on a canvas, one slice at a time: edges solid, lesions lightly

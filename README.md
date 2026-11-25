@@ -12,13 +12,15 @@ milestone ([roadmap](docs/roadmap.md)).
 > de-identified public research scan or a synthetic one. Nothing on this site
 > may be used to diagnose or treat anyone. See [docs/safety.md](docs/safety.md).
 
-![The reading room after handing in a read: a real kidney CT with the tumour outlined and the reference measurement, and the score panel beside it](docs/images/reading-room.jpg)
+![The reading room after handing in a read: axial, coronal and sagittal views of a real kidney CT with the crosshair through the tumour, the tumour outlined with the reference measurement, and the score panel beside it](docs/images/reading-room.jpg)
 
 ## What it does
 
 - **A real DICOM viewer in the browser**, built on [Cornerstone3D](https://www.cornerstonejs.org/)
-  (the engine inside the OHIF viewer): scroll, window/level with abdomen, liver,
-  bone and lung presets, pan, zoom and a calibrated length tool.
+  (the engine inside the OHIF viewer), laid out like a hospital PACS: axial,
+  coronal and sagittal views with crosshair lines you drag to move through them,
+  drag to scroll, right-drag for window/level (abdomen, liver, bone and lung
+  presets), pan, zoom, a right-click menu and a calibrated length tool.
 - **A simulator.** Measure each lesion's longest axial diameter and say whether it is
   a mass or a cyst. Hand in, and the app matches your measurements to the
   radiologists' outlines: tumours found, false positives, size error, time.

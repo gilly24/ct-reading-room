@@ -5,20 +5,39 @@ import type { Mark, MarkKind } from "../read/marks";
 import { draftReport, itemFromLesion, itemFromMark } from "../read/report";
 import { scoreRead } from "../read/scoring";
 import type { ToolChoice } from "../viewer/cornerstone";
+import { type ViewName, VIEWS } from "../viewer/mpr";
 import { PRESETS } from "../viewer/presets";
-import { type MarkGeometry, Viewer, type ViewerHandle } from "../viewer/Viewer";
+import { type Layout, type MarkGeometry, Viewer, type ViewerHandle, VIEW_TITLES } from "../viewer/Viewer";
 import { AnswerPanel } from "./AnswerPanel";
 import { clock } from "./format";
+import { Icon, type IconName } from "./Icon";
+import { Menu, type MenuEntry } from "./Menu";
 
 type Phase = "reading" | "reviewing";
 type MarkChoice = { kind: MarkKind; organ: string };
 
+/** What the left mouse button does. The right button always sets the window, the middle button pans. */
 const TOOL_BUTTONS: { tool: ToolChoice; label: string; key: string; hint: string }[] = [
-  { tool: "window", label: "Window", key: "w", hint: "Drag to change brightness and contrast" },
-  { tool: "pan", label: "Pan", key: "p", hint: "Drag to move (or middle-drag)" },
-  { tool: "zoom", label: "Zoom", key: "z", hint: "Drag to zoom (or right-drag)" },
-  { tool: "measure", label: "Measure", key: "m", hint: "Drag across a lesion's longest diameter" },
+  { tool: "scroll", label: "Scroll", key: "s", hint: "Drag up and down to move through the images (or use the wheel)" },
+  { tool: "window", label: "Window", key: "w", hint: "Drag to change brightness and contrast (or right-drag)" },
+  { tool: "pan", label: "Pan", key: "p", hint: "Drag to move the image (or middle-drag, or Shift-drag)" },
+  { tool: "zoom", label: "Zoom", key: "z", hint: "Drag to zoom (or Ctrl-drag, or Ctrl and the wheel)" },
+  { tool: "measure", label: "Measure", key: "m", hint: "Drag across a lesion's longest diameter, on an axial image" },
 ];
+
+/** Below this width the three views do not fit: one at a time, with a switch. */
+const NARROW = "(max-width: 640px)";
+
+function useMedia(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const list = window.matchMedia(query);
+    const onChange = () => setMatches(list.matches);
+    list.addEventListener("change", onChange);
+    return () => list.removeEventListener("change", onChange);
+  }, [query]);
+  return matches;
+}
 
 export function ReadingRoom({ caseId, nextCaseId }: { caseId: string; nextCaseId: string | null }) {
   const [meta, setMeta] = useState<CaseMeta | null>(null);
@@ -52,11 +71,16 @@ export function ReadingRoom({ caseId, nextCaseId }: { caseId: string; nextCaseId
 
 function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: string | null; onRestart(): void }) {
   const viewer = useRef<ViewerHandle>(null);
-  const [tool, setTool] = useState<ToolChoice>("window");
+  const [tool, setTool] = useState<ToolChoice>("scroll");
   const [phase, setPhase] = useState<Phase>("reading");
   const [geometry, setGeometry] = useState<MarkGeometry[]>([]);
   const [choices, setChoices] = useState<Record<string, MarkChoice>>({});
-  const [slice, setSlice] = useState(0);
+  const [chosenLayout, setLayout] = useState<Layout>("three");
+  const [focus, setFocus] = useState<ViewName>("axial");
+  const [showLines, setShowLines] = useState(true);
+  const [menu, setMenu] = useState<{ x: number; y: number; entries: "all" | "presets" } | null>(null);
+  const narrow = useMedia(NARROW);
+  const layout: Layout = narrow ? "single" : chosenLayout;
   const [ready, setReady] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
@@ -100,7 +124,7 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
   const handIn = async () => {
     setFinishedAt(Date.now());
     setPhase("reviewing");
-    setTool("window");
+    setTool("scroll");
     try {
       const t = await loadTruth(meta);
       setTruth(t);
@@ -109,6 +133,20 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
       setTruthError(String(e));
     }
   };
+
+  const changeLayout = useCallback((next: Layout, view: ViewName) => {
+    setLayout(next);
+    setFocus(view);
+  }, []);
+  const toggleLayout = useCallback(
+    (view: ViewName) => {
+      // On a phone there is only room for one view, so this switches which one.
+      if (narrow) return setFocus(view === focus ? "axial" : view);
+      changeLayout(layout === "three" ? "single" : "three", view);
+    },
+    [narrow, focus, layout, changeLayout],
+  );
+  const closeMenu = useCallback(() => setMenu(null), []);
 
   // Keyboard, as on a workstation. Ignored while typing.
   useEffect(() => {
@@ -126,13 +164,16 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
         viewer.current?.setWindow(preset.width, preset.center);
         return;
       }
-      const button = TOOL_BUTTONS.find((b) => b.key === e.key.toLowerCase());
+      const key = e.key.toLowerCase();
+      const button = TOOL_BUTTONS.find((b) => b.key === key);
       if (button && (button.tool !== "measure" || phase === "reading")) setTool(button.tool);
-      if (e.key.toLowerCase() === "r") viewer.current?.reset();
+      if (key === "r") viewer.current?.reset();
+      if (key === "x") setShowLines((on) => !on);
+      if (key === "f") toggleLayout(viewer.current?.activeView() ?? "axial");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase]);
+  }, [phase, toggleLayout]);
 
   const score = useMemo(
     () => (truth ? scoreRead(marks, truth.lesions, { pixelSpacingMm: meta.geometry.pixelSpacingMm }) : null),
@@ -144,7 +185,43 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
   );
 
   const elapsed = startedAt ? Math.max(0, Math.round(((finishedAt ?? now) - startedAt) / 1000)) : 0;
-  const total = meta.geometry.slices;
+  const presetEntries: MenuEntry[] = PRESETS.map((p) => ({
+    kind: "item",
+    label: `${p.name}  ·  W ${p.width} L ${p.center}`,
+    shortcut: p.key,
+    onSelect: () => viewer.current?.setWindow(p.width, p.center),
+  }));
+  const menuEntries: MenuEntry[] = [
+    { kind: "heading", label: "Left button" },
+    ...TOOL_BUTTONS.map((b): MenuEntry => ({
+      kind: "item",
+      label: b.label,
+      shortcut: b.key.toUpperCase(),
+      role: "radio",
+      checked: tool === b.tool,
+      disabled: b.tool === "measure" && phase !== "reading",
+      onSelect: () => setTool(b.tool),
+    })),
+    { kind: "divider" },
+    { kind: "heading", label: "Window" },
+    ...presetEntries,
+    { kind: "divider" },
+    {
+      kind: "item",
+      label: "Crosshair lines",
+      shortcut: "X",
+      role: "checkbox",
+      checked: showLines,
+      onSelect: () => setShowLines((on) => !on),
+    },
+    {
+      kind: "item",
+      label: narrow ? "Next view" : layout === "three" ? "One view" : "Three views",
+      shortcut: "F",
+      onSelect: () => toggleLayout(viewer.current?.activeView() ?? "axial"),
+    },
+    { kind: "item", label: "Reset", shortcut: "R", onSelect: () => viewer.current?.reset() },
+  ];
   const reference: Lesion[] | null = phase === "reviewing" && truth && showReference ? truth.lesions : null;
 
   return (
@@ -152,30 +229,55 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
       <section className="room-main">
         <div className="toolbar" role="toolbar" aria-label="Viewer tools">
           {TOOL_BUTTONS.map((b) => (
-            <button
+            <ToolButton
               key={b.tool}
-              className={tool === b.tool ? "active" : ""}
+              icon={b.tool}
+              label={b.label}
+              active={tool === b.tool}
               onClick={() => setTool(b.tool)}
               disabled={b.tool === "measure" && phase !== "reading"}
               title={`${b.hint} (${b.key.toUpperCase()})`}
-            >
-              {b.label}
-            </button>
+            />
           ))}
           <span className="divider" />
-          {PRESETS.map((p) => (
-            <button
-              key={p.name}
-              onClick={() => viewer.current?.setWindow(p.width, p.center)}
-              title={`W ${p.width} L ${p.center} (${p.key})`}
-            >
-              {p.name}
-            </button>
-          ))}
-          <span className="divider" />
-          <button onClick={() => viewer.current?.reset()} title="Reset zoom, pan and window (R)">
-            Reset
-          </button>
+          <ToolButton
+            icon="presets"
+            label="Presets"
+            anchor
+            expanded={menu?.entries === "presets"}
+            onClick={(e) => {
+              if (menu?.entries === "presets") return setMenu(null);
+              const r = e.currentTarget.getBoundingClientRect();
+              setMenu({ x: r.left, y: r.bottom + 2, entries: "presets" });
+            }}
+            title="Window presets (1–4)"
+          />
+          <ToolButton
+            icon="lines"
+            label="Crosshair"
+            short="Lines"
+            active={showLines}
+            onClick={() => setShowLines((on) => !on)}
+            title="Show where the other views cut this one; drag a line to move that view (X)"
+          />
+          {!narrow && (
+            <ToolButton
+              icon={layout === "three" ? "single" : "three"}
+              label={layout === "three" ? "1 view" : "3 views"}
+              onClick={() => toggleLayout(viewer.current?.activeView() ?? "axial")}
+              title="One view or three (F, or double-click a view)"
+            />
+          )}
+          <ToolButton icon="reset" label="Reset" onClick={() => viewer.current?.reset()} title="Reset zoom, pan and window (R)" />
+          {layout === "single" && (
+            <div className="view-switch" role="group" aria-label="View">
+              {VIEWS.map((v) => (
+                <button key={v} className={focus === v ? "active" : ""} onClick={() => setFocus(v)}>
+                  {VIEW_TITLES[v]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <Viewer
           ref={viewer}
@@ -185,23 +287,23 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
           reference={reference}
           labels={phase === "reviewing" ? labels : null}
           showOutlines={showOutlines}
+          layout={layout}
+          focus={focus}
+          showLines={showLines}
+          onLayout={(next, view) => (narrow ? setFocus(view) : changeLayout(next, view))}
+          onMenu={(x, y) => setMenu({ x, y, entries: "all" })}
           onMarks={setGeometry}
           onReady={onReady}
-          onSlice={setSlice}
         />
-        <label className="slice-slider">
-          <span>
-            Image {slice + 1} of {total}
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={total - 1}
-            value={slice}
-            onChange={(e) => viewer.current?.goToSlice(Number(e.target.value))}
-            aria-label="Image"
+        {menu && (
+          <Menu
+            x={menu.x}
+            y={menu.y}
+            label={menu.entries === "presets" ? "Window presets" : "Viewer"}
+            entries={menu.entries === "presets" ? presetEntries : menuEntries}
+            onClose={closeMenu}
           />
-        </label>
+        )}
       </section>
 
       <aside className="room-panel">
@@ -220,8 +322,10 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
           <section className="panel-section">
             <h2>Your read</h2>
             <p className="muted small">
-              Scroll through every image. Use <b>Measure</b> to draw each lesion's longest diameter, then say what you
-              think it is. Hand in when you have reported everything you see.
+              Drag up and down, or use the wheel, to scroll through every image; right-drag sets the window. The
+              coronal and sagittal views show the same scan from the front and the side: drag a crosshair line to move
+              through them. Use <b>Measure</b> on the axial images to draw each lesion's longest diameter, then say
+              what you think it is. Hand in when you have reported everything you see.
             </p>
             {!ready && <p className="muted small">Images are loading…</p>}
           </section>
@@ -355,4 +459,53 @@ function patientWords(meta: CaseMeta): string {
   if (!age && !sex) return "";
   const who = sex === "M" ? "man" : sex === "F" ? "woman" : "patient";
   return age ? ` · ${age}-year-old ${who}` : ` · ${who}`;
+}
+
+function ToolButton({
+  icon,
+  label,
+  short,
+  title,
+  active,
+  disabled,
+  anchor,
+  expanded,
+  onClick,
+}: {
+  icon: IconName;
+  label: string;
+  /** A shorter label for phones. */
+  short?: string;
+  title: string;
+  active?: boolean;
+  disabled?: boolean;
+  /** Opens a menu: the menu leaves clicks on it alone. */
+  anchor?: boolean;
+  expanded?: boolean;
+  onClick(e: React.MouseEvent<HTMLButtonElement>): void;
+}) {
+  return (
+    <button
+      className={`tool${active ? " active" : ""}`}
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-pressed={active === undefined ? undefined : active}
+      aria-haspopup={anchor ? "menu" : undefined}
+      aria-expanded={anchor ? Boolean(expanded) : undefined}
+      data-menu-anchor={anchor ? "" : undefined}
+    >
+      <Icon name={icon} />
+      <span className="tool-label">
+        {short ? (
+          <>
+            <span className="label-long">{label}</span>
+            <span className="label-short">{short}</span>
+          </>
+        ) : (
+          label
+        )}
+      </span>
+    </button>
+  );
 }

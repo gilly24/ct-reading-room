@@ -14,6 +14,13 @@
   --tumour: #ff8a3d;
   --cyst: #6fe3c4;
   --radius: 8px;
+  /* PACS toolbar and viewport frame */
+  --toolbar: #202a36;
+  --toolbar-2: #2b3746;
+  --toolbar-line: #364456;
+  --tool-active: #3d6fa8;
+  --vp-gap: #2a313b;
+  --overlay-text: #e6ecf2;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.45;
@@ -266,42 +273,177 @@ code {
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel);
-  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--toolbar-line);
+  background: linear-gradient(var(--toolbar-2), var(--toolbar));
+  align-items: stretch;
 }
 
 .toolbar .divider {
   width: 1px;
-  align-self: stretch;
-  background: var(--line);
-  margin: 0 4px;
+  background: var(--toolbar-line);
+  margin: 4px 5px;
 }
 
-.viewer {
+/* Icon over label, as on a reading workstation. */
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 58px;
+  padding: 4px 6px 3px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #d5dde6;
+}
+
+.tool:hover:not(:disabled) {
+  background: #33414f;
+  border-color: #46576b;
+}
+
+.tool.active,
+.tool[aria-expanded="true"] {
+  background: var(--tool-active);
+  border-color: #5c8fca;
+  color: #fff;
+}
+
+.tool-label {
+  font-size: 11px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.label-short {
+  display: none;
+}
+
+.icon-svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.view-switch {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.view-switch button {
+  padding: 3px 8px;
+  font-size: 12px;
+  background: var(--toolbar);
+  border-color: var(--toolbar-line);
+  border-radius: 4px;
+}
+
+.view-switch button.active {
+  background: var(--tool-active);
+  border-color: #5c8fca;
+  color: #fff;
+}
+
+/* Three views: coronal and sagittal stacked on the left, axial large on the right. */
+.viewports {
   position: relative;
   flex: 1;
   min-height: 0;
-  background: #000;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "sagittal axial"
+    "coronal axial";
+  gap: 2px;
+  background: var(--vp-gap);
   overflow: hidden;
 }
 
-.viewer-canvas {
-  position: absolute;
-  inset: 0;
+.vp {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: #000;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.viewer-outlines {
+.vp-axial {
+  grid-area: axial;
+}
+
+.vp-coronal {
+  grid-area: coronal;
+}
+
+.vp-sagittal {
+  grid-area: sagittal;
+}
+
+/* The view last clicked: arrow keys and F act on it. */
+.vp.active::after {
+  content: "";
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  border: 1px solid #5c8fca;
   pointer-events: none;
 }
 
-.viewer-overlay {
+/* One view filling the space. The others stay full size underneath, hidden, so
+   Cornerstone never has to draw into a zero-sized canvas. */
+.viewports.single {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: "focus";
+}
+
+.viewports.single .vp {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+}
+
+.viewports.single .vp.focus {
+  position: relative;
+  grid-area: focus;
+  visibility: visible;
+}
+
+.viewports.single .vp.active::after {
+  display: none;
+}
+
+.vp-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* Over a crosshair line: show that it can be dragged. */
+.vp[data-grab="col"] .vp-canvas * {
+  cursor: col-resize !important;
+}
+
+.vp[data-grab="row"] .vp-canvas * {
+  cursor: row-resize !important;
+}
+
+.vp[data-grab="both"] .vp-canvas * {
+  cursor: move !important;
+}
+
+.viewer-outlines,
+.viewer-overlay,
+.crosshair {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -335,50 +477,127 @@ code {
   stroke-width: 3px;
 }
 
+.crosshair line {
+  stroke-width: 1.25;
+  opacity: 0.85;
+}
+
 .corner {
   position: absolute;
   font-size: 12px;
-  color: #cfd8e2;
-  text-shadow: 0 0 3px #000;
+  line-height: 1.35;
+  color: var(--overlay-text);
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
 
 .corner.top-left {
-  top: 8px;
-  left: 10px;
+  top: 6px;
+  left: 8px;
 }
 
 .corner.top-right {
-  top: 8px;
-  right: 10px;
+  top: 6px;
+  right: 8px;
+  text-align: right;
 }
 
 .corner.bottom-left {
-  bottom: 8px;
-  left: 10px;
+  bottom: 6px;
+  left: 8px;
 }
 
 .corner.bottom-right {
-  bottom: 8px;
-  right: 10px;
+  bottom: 6px;
+  right: 8px;
 }
 
-.side-label {
+.view-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* Patient directions at the edges of each view. */
+.edge {
   position: absolute;
-  top: 50%;
+  font-size: 13px;
   font-weight: 700;
-  color: #cfd8e2;
-  text-shadow: 0 0 3px #000;
+  color: var(--overlay-text);
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
   pointer-events: none;
 }
 
-.side-label.left {
-  left: 10px;
+.edge.top {
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.side-label.right {
-  right: 10px;
+.edge.bottom {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.edge.left {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.edge.right {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* The little figure: which way this view cuts through the body. */
+.figure {
+  position: absolute;
+  right: 8px;
+  bottom: 26px;
+  width: 24px;
+  height: 48px;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.figure-body {
+  fill: #c98a4b;
+  stroke: #c98a4b;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.figure-arm {
+  stroke: #9a6532;
+}
+
+.figure-plane {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1px #000);
+}
+
+/* Cornerstone's warning that a view is drawn from less than the full data. It
+   places itself top right; below the image number, so neither hides the other. */
+.vp .fi-root {
+  top: 44px !important;
+  right: 4px !important;
+}
+
+.vp .fi-label {
+  font-size: 11px;
+  padding: 2px 6px;
 }
 
 .viewer-status {
@@ -387,6 +606,7 @@ code {
   display: grid;
   place-content: center;
   gap: 8px;
+  padding: 12px;
   text-align: center;
   color: var(--muted);
 }
@@ -395,24 +615,65 @@ code {
   width: 240px;
 }
 
-.slice-slider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--line);
-  background: var(--panel);
+/* Menus: right click on a view, and the toolbar's presets. */
+.menu {
+  position: fixed;
+  z-index: 50;
+  min-width: 220px;
+  padding: 4px;
+  background: #1c2531;
+  border: 1px solid #44546a;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
   font-size: 13px;
+}
+
+.menu button {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.menu button:hover:not(:disabled),
+.menu button:focus-visible {
+  background: var(--tool-active);
+  color: #fff;
+  outline: none;
+}
+
+.menu-tick {
+  color: var(--accent);
+}
+
+.menu button:hover .menu-tick,
+.menu button:focus-visible .menu-tick {
+  color: #fff;
+}
+
+.menu kbd {
+  font: 11px ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   color: var(--muted);
-  font-variant-numeric: tabular-nums;
 }
 
-.slice-slider span {
-  min-width: 120px;
+.menu-heading {
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
 }
 
-.slice-slider input {
-  flex: 1;
+.menu-divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: #34404f;
 }
 
 .room-panel {
@@ -623,6 +884,41 @@ pre.report {
 
 /* The notice stays on every page at every width (docs/safety.md); phones get
    the short form so the header still fits on one line. */
+@media (max-width: 640px) {
+  /* All the tools share one row; the view switch takes the next. */
+  .tool {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 3px 1px 2px;
+  }
+
+  .tool-label {
+    font-size: 9.5px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .label-long {
+    display: none;
+  }
+
+  .label-short {
+    display: inline;
+  }
+
+  .toolbar .divider {
+    margin: 4px 1px;
+  }
+
+  .view-switch {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
+    padding-top: 2px;
+  }
+}
+
 @media (max-width: 560px) {
   .site-head {
     gap: 10px;
