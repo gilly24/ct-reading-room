@@ -33,7 +33,7 @@ tests in `tests/test_train_data.py` are skipped. CI installs both.
 | `dicom_io.py` | read one CT series, check it, order it head first, HU |
 | `seg_io.py` | DICOM SEG → label volume in the CT's order; class table |
 | `findings.py` | connected lesions → measurements |
-| `bundle.py` | write `case.json`, `truth.json`, `labels.u8.gz`, `index.json` |
+| `bundle.py` | write `case.json`, `truth.json`, `labels.u8.gz`, `index.json`, and the CT as lossless HTJ2K |
 | `build.py` | a study folder (CT + one SEG) → a case |
 | `phantom.py` | the synthetic abdomen, written as CT DICOM + SEG |
 | `idc.py` | Imaging Data Commons downloads |

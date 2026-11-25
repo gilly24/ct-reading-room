@@ -8,7 +8,11 @@ import re
 import shutil
 from pathlib import Path
 
+import imagecodecs
 import numpy as np
+import pydicom
+from pydicom.encaps import encapsulate
+from pydicom.uid import HTJ2KLossless
 
 from .dicom_io import CtSeries
 from .findings import Lesion
@@ -44,7 +48,7 @@ def write_case(
     images = []
     for i, src in enumerate(ct.paths):
         name = f"ct/{i:04d}.dcm"
-        shutil.copyfile(src, folder / name)
+        write_htj2k(src, folder / name)
         images.append(name)
 
     first = ct.datasets[0]
@@ -95,6 +99,43 @@ def write_case(
     _write_json(folder / "case.json", case)
     _write_json(folder / "truth.json", truth)
     return folder
+
+
+def write_htj2k(src: Path, dest: Path) -> None:
+    """Write one CT file again with its pixels as lossless HTJ2K, about a third of the size.
+
+    Every other element is kept, the SOP Instance UID included: lossless compression
+    does not make a new image. The codestream is decoded again and compared with the
+    original before it is written, so a pixel value that would change stops the build.
+    """
+    ds = pydicom.dcmread(src)
+    if int(getattr(ds, "NumberOfFrames", 1) or 1) != 1 or int(ds.SamplesPerPixel) != 1:
+        raise ValueError(f"{src}: expected one greyscale frame")
+    values = ds.pixel_array
+    bits = int(ds.BitsStored)
+    signed = int(ds.PixelRepresentation) == 1
+    low, high = (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if signed else (0, (1 << bits) - 1)
+    fits = values.min() >= low and values.max() <= high
+    syntax = ds.file_meta.TransferSyntaxUID
+    if fits and not syntax.is_compressed:
+        # pydicom drops bits above Bits Stored as it reads; a viewer may not. Refuse
+        # rather than encode a value that differs from the stored one.
+        dtype = values.dtype.newbyteorder("<" if syntax.is_little_endian else ">")
+        stored = np.frombuffer(ds.PixelData, dtype=dtype, count=values.size).reshape(values.shape)
+        fits = np.array_equal(stored, values)
+    if not fits:
+        raise ValueError(f"{src}: pixel values do not fit in Bits Stored ({bits})")
+
+    codestream = imagecodecs.htj2k_encode(values, level=0, reversible=True, bitspersample=bits)
+    decoded = imagecodecs.htj2k_decode(codestream)
+    if decoded.shape != values.shape or not np.array_equal(decoded, values):
+        raise ValueError(f"{src}: HTJ2K round trip changed pixel values")
+
+    ds.PixelData = encapsulate([codestream])
+    ds["PixelData"].VR = "OB"
+    ds["PixelData"].is_undefined_length = True
+    ds.file_meta.TransferSyntaxUID = HTJ2KLossless
+    ds.save_as(dest, enforce_file_format=True)
 
 
 def write_index(cases_root: Path) -> Path:

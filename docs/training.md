@@ -222,7 +222,7 @@ runs on the CPU, so rent a machine with a good number of cores.
 
 ### Set up
 
-On the GPU machine (Linux, Python 3.11 or later, an NVIDIA driver):
+On the GPU machine (Linux, Python 3.12 or later, an NVIDIA driver):
 
 ```bash
 # PyTorch first, built for the machine's CUDA (https://pytorch.org/get-started/locally/).

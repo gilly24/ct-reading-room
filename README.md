@@ -32,7 +32,7 @@ milestone ([roadmap](docs/roadmap.md)).
 
 ## Run it
 
-You need Node 22+, pnpm, Python 3.11+ and [uv](https://docs.astral.sh/uv/).
+You need Node 22+, pnpm, Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 Full set-up for Windows, Mac, Linux or Codespaces is in
 [docs/getting-started.md](docs/getting-started.md).
 

@@ -58,8 +58,12 @@ through exactly the same build as a downloaded case, so the tests in
 
 ## Website (`web/src`)
 
-**Viewer** (`viewer/Viewer.tsx`). One Cornerstone3D stack viewport. All images
-are fetched up front (eight at a time) so scrolling never waits. Tools: window
+**Viewer** (`viewer/Viewer.tsx`). One Cornerstone3D stack viewport. The first
+image shows as soon as it and the four after it have arrived; the rest are
+fetched while the case is read, six at a time, always the waiting image nearest
+the one on screen (`viewer/slices.ts`), so a reader who jumps ahead gets that
+part of the case next. An image scrolled to before its turn is fetched there
+and then. The files are lossless HTJ2K, decoded by WebAssembly. Tools: window
 and level, pan (middle button), zoom (right button), stack scroll (wheel) and
 length. The left button follows the toolbar. Corner text and R/L markers are
 drawn by React over the canvas. Reference boxes and long axes are an SVG layer

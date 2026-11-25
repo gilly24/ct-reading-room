@@ -55,9 +55,9 @@ reader's and the reference.
 
 ## Site improvements
 
-- [ ] Compress the DICOM losslessly (HTJ2K) in the pipeline: 2–3× smaller
-      downloads. The decoders are already bundled.
-- [ ] Load the slices near the current one first, so a big case opens sooner.
+- [x] Compress the DICOM losslessly (HTJ2K) in the pipeline: 2.5–3× smaller
+      downloads.
+- [x] Load the slices near the current one first, so a big case opens sooner.
 - [ ] Remember a reader's attempts in the browser (localStorage) and show progress across cases.
 - [ ] Coronal and sagittal views (Cornerstone volume viewports).
 - [ ] Keyboard help overlay (`?`).

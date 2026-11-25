@@ -27,7 +27,7 @@ download below; the free Codespaces disk holds a few comfortably.
 | Git | any | https://git-scm.com |
 | Node.js | 22 or later | https://nodejs.org (or `nvm install`, which reads `.nvmrc`) |
 | pnpm | 10 | `corepack enable` (comes with Node) |
-| Python | 3.11 or later | https://python.org, or let uv install it |
+| Python | 3.12 or later | https://python.org, or let uv install it |
 | uv | latest | https://docs.astral.sh/uv/getting-started/installation/ |
 
 On Windows, use PowerShell or Windows Terminal; every command below works
