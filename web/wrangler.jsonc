@@ -10,6 +10,6 @@
     "binding": "ASSETS",
     "run_worker_first": ["/cases/index.json"]
   },
-  // Once the R2 bucket exists, uncomment this so real cases are served from it.
-  // "r2_buckets": [{ "binding": "CASES", "bucket_name": "ct-reading-room-cases" }]
+  // Real cases, uploaded with `pnpm upload-cases` (docs/deploying.md).
+  "r2_buckets": [{ "binding": "CASES", "bucket_name": "ct-reading-room-cases" }]
 }

@@ -51,7 +51,8 @@ Every push to `main` builds and deploys again.
    Leave public access off; the Worker reads it.
 
 3. Upload. Sign wrangler in once (`pnpm exec wrangler login`, or set
-   `CLOUDFLARE_API_TOKEN` to a token with R2 edit rights), then:
+   `CLOUDFLARE_API_TOKEN` to a token with R2 edit rights; with more than one
+   Cloudflare account, also set `CLOUDFLARE_ACCOUNT_ID`), then:
 
    ```bash
    cd web
@@ -64,11 +65,10 @@ Every push to `main` builds and deploys again.
    do not want it online. `--only kits-00002,kits-00004` re-uploads just those
    cases (plus the list) after a rebuild.
 
-4. The first time only, bind the bucket to the Worker: in `web/wrangler.jsonc`,
-   uncomment the `r2_buckets` line, then commit and push. The next deploy serves
-   the scans.
-
-Adding cases later is steps 1 and 3 only.
+The bucket is bound to the Worker in `web/wrangler.jsonc` (`r2_buckets`), so
+uploaded cases are live as soon as the upload finishes; no redeploy needed. If
+you name the bucket differently, change it there too: a deploy fails when the
+bucket it names does not exist.
 
 ## Trying it locally, as Cloudflare runs it
 
@@ -79,7 +79,6 @@ pnpm upload-cases --local --only kits-00004   # fills wrangler's local bucket
 pnpm exec wrangler dev                         # http://localhost:8787
 ```
 
-With the binding commented out, `wrangler dev` serves only what the build has.
 `pnpm deploy:check` runs the deploy without uploading anything, to check the
 configuration.
 

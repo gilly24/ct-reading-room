@@ -75,8 +75,8 @@ private field.
 
 - Deploys are Cloudflare Workers Builds from `main` (docs/deploying.md). The
   `name` in `web/wrangler.jsonc` must match the Worker's name in Cloudflare.
-  The `r2_buckets` binding stays commented out until the bucket exists, or the
-  deploy fails. `caseKey()` in the Worker is the only thing between a URL and a
+  The `r2_buckets` binding names the bucket `ct-reading-room-cases`; a deploy
+  fails if that bucket does not exist in the account. `caseKey()` in the Worker is the only thing between a URL and a
   bucket key; keep its test.
 
 - The Vite config leaves `@cornerstonejs/dicom-image-loader`, `metadata` and

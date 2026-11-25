@@ -4,14 +4,19 @@
 //   node scripts/upload-cases.mjs [--bucket ct-reading-room-cases] [--only kits-00002,kits-00004] [--local]
 //
 // Uses wrangler, so sign in first with `pnpm exec wrangler login` or set
-// CLOUDFLARE_API_TOKEN. --local fills the bucket `wrangler dev` simulates.
+// CLOUDFLARE_API_TOKEN (and CLOUDFLARE_ACCOUNT_ID if you have several
+// accounts). --local fills the bucket `wrangler dev` simulates.
 import { execFile } from "node:child_process";
 import { readdirSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
+// Run wrangler's own script with this Node, which works the same on Windows,
+// where pnpm and wrangler are .cmd files execFile cannot start.
+const wrangler = join(dirname(createRequire(import.meta.url).resolve("wrangler/package.json")), "bin", "wrangler.js");
 const web = join(dirname(fileURLToPath(import.meta.url)), "..");
 const root = join(web, "public");
 const args = process.argv.slice(2);
@@ -47,10 +52,10 @@ async function worker() {
     const path = files[next++];
     const key = relative(root, path).split(sep).join("/");
     const type = TYPES[path.slice(path.lastIndexOf("."))] ?? "application/octet-stream";
-    const command = ["exec", "wrangler", "r2", "object", "put", `${bucket}/${key}`, "--file", path, "--content-type", type, target];
+    const command = [wrangler, "r2", "object", "put", `${bucket}/${key}`, "--file", path, "--content-type", type, target];
     for (let attempt = 1; ; attempt++) {
       try {
-        await run("pnpm", command, { cwd: web, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } });
+        await run(process.execPath, command, { cwd: web, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } });
         break;
       } catch (error) {
         if (attempt === 3) throw error;
