@@ -26,6 +26,10 @@ The CT files are 0.5–1 MB a slice, so a 260-slice case is about 130 MB. For
 the website, prefer studies under about 100 slices (`--max-slices 100`) until
 the DICOM is compressed (roadmap).
 
+All 210 studies are also the AI's training data: 23.5 GB of outlined CT plus
+3 GB of SEGs, split once into 170 training and 40 held-out patients
+([training.md](training.md)). The website shows only held-out patients.
+
 ### Synthetic phantom
 
 `pipeline/ctrr/phantom.py`. Nobody's scan; MIT like the code. It is the

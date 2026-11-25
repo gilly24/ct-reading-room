@@ -4,6 +4,7 @@
     ctrr fetch-kits --count 5    # download 5 kidney-tumour studies from IDC
     ctrr build-kits              # turn everything fetched into cases
     ctrr index                   # rewrite cases/index.json
+    ctrr train-data              # nnU-Net training set from fetched studies (docs/training.md)
 
 Cases are written to ../web/public/cases unless --cases says otherwise.
 """
@@ -51,8 +52,22 @@ def main(argv: list[str] | None = None) -> None:
 
     sub.add_parser("index", help="rewrite cases/index.json")
 
+    train = sub.add_parser("train-data", help="write the nnU-Net v2 training set and its validation report")
+    train.add_argument("--raw", type=Path, default=HERE / ".data" / "train-raw", help="where fetch-kits put the studies")
+    train.add_argument("--out", type=Path, default=HERE / ".data" / "nnUNet_raw", help="nnU-Net's nnUNet_raw folder")
+    train.add_argument("--jobs", type=int, default=4, help="cases converted at once (each can take a few GB)")
+
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    if args.command == "train-data":  # writes no website cases
+        from .train_data import build_training_set  # needs the `train` extra
+
+        summary = build_training_set(args.raw, args.out, jobs=args.jobs)
+        print(f"{summary['passed']} of {summary['fetched']} cases passed; "
+              f"{summary['train']} train, {summary['test']} test; report in {summary['folder']}/validation.md")
+        return
+
     args.cases.mkdir(parents=True, exist_ok=True)
 
     if args.command == "phantom":
