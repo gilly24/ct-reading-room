@@ -121,6 +121,8 @@ brings SimpleITK; without it the NIfTI tests skip rather than run.
 | [project.md](docs/project.md) | What the project is for, what it will contain, and the decisions behind it |
 | [roadmap.md](docs/roadmap.md) | What is done, and the plan to finish |
 | [findings.md](docs/findings.md) | What the project has found so far: the field, the data, and from building it |
+| [phase1.md](docs/phase1.md) | Phase 1 step by step: train, freeze, test once, model card, on the site |
+| [training-diary.md](docs/training-diary.md) | The dated record of training the model: settings, numbers, problems, fixes |
 | [getting-started.md](docs/getting-started.md) | Set up on any machine, first run, troubleshooting |
 | [architecture.md](docs/architecture.md) | How the pipeline, viewer, scoring and report work |
 | [case-format.md](docs/case-format.md) | The files a case is made of |

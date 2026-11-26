@@ -33,6 +33,9 @@ Week 1 starts on Monday 30 November 2026. The dates are a guide; the order matte
 
 ## Phase 1: the kidney model (weeks 1–3)
 
+Step by step, with checks and decision points: [phase1.md](phase1.md). Record
+it in [training-diary.md](training-diary.md).
+
 **Week 1**
 - [ ] Meet the supervisor; start the ethics application (study-plan.md).
 - [ ] Training machine: `nvidia-smi`, WSL2 if on Windows, PyTorch with CUDA, nnU-Net v2.
