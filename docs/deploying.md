@@ -31,11 +31,14 @@ no CORS rules and the bucket stays private.
    | Root directory | `web` |
    | Build command | `pnpm build` |
    | Deploy command | `npx wrangler deploy` (the default) |
-   | Builds for non-production branches | **Off** (Settings → Builds → Branch control) |
+   | Builds for Preview branches | **Off** (Settings → Builds → Previews Base tab) |
 
    Branch builds are off on purpose. They failed on every pull request while
    `main` deployed fine, and GitHub Actions already checks each pull request
    with the same deploy, dry-run (`pnpm deploy:check` in `.github/workflows/ci.yml`).
+   Since Cloudflare added Worker Previews (late 2026) the switch is on the
+   Previews Base tab; older dashboards called it "Builds for non-production
+   branches", under Branch control.
 
 3. Deploy. The address is `https://ct-reading-room.<your-subdomain>.workers.dev`.
    It shows the tutorial case, the only case in the repository.
