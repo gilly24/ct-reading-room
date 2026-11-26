@@ -27,6 +27,14 @@ This site is not one and must not behave like one:
 - Only datasets whose licence allows re-hosting, credited wherever they are
   shown (data.md).
 
+## The learner study
+
+The study (study-plan.md) runs only with a supervisor and ethics approval, in a
+separate study mode reached by a participant link, after consent. It records a
+participant code and their reads, never names, contact details or health
+information, and never a scan. The public site records nothing. The AI's reads
+in the study are the real model's, on cases it never trained on.
+
 ## The drafter does not diagnose
 
 The report draft states what was measured: organ, side, size, image number.

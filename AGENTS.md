@@ -7,8 +7,8 @@ Orientation for anyone, human or agent, working in this repository.
 A portfolio project: a browser-based radiology reading room for abdominal CT.
 A person reads a scan, measures lesions and drafts a report; the site then
 compares their read with the radiologists' outlines. An AI second reader is
-being added (docs/roadmap.md). It is an educational demo and must stay one
-(docs/safety.md).
+being added. It is an educational demo and must stay one (docs/safety.md).
+The plan and its decisions: docs/project.md; the order of work: docs/roadmap.md.
 
 ## Layout
 
