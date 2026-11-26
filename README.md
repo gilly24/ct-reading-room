@@ -5,8 +5,9 @@ images, find every kidney tumour, measure it, and watch the report draft itself
 from your measurements. Then hand in your read to see the radiologists'
 outlines and how close you were.
 
-An AI second reader that finds, measures and drafts the same report is the next
-milestone ([roadmap](docs/roadmap.md)).
+An AI second reader that finds, measures and drafts the same report is being
+built ([roadmap](docs/roadmap.md)): the site and pipeline are ready for it, and
+the model is next to be trained.
 
 > **Educational demo, not for clinical use.** Every scan here is a
 > de-identified public research scan or a synthetic one. Nothing on this site
@@ -89,11 +90,16 @@ CI runs the same on every push (`.github/workflows/ci.yml`).
 
 | | |
 |---|---|
+| [project.md](docs/project.md) | What the project is for, what it will contain, and the decisions behind it |
+| [roadmap.md](docs/roadmap.md) | What is done, and the plan to finish |
 | [getting-started.md](docs/getting-started.md) | Set up on any machine, first run, troubleshooting |
 | [architecture.md](docs/architecture.md) | How the pipeline, viewer, scoring and report work |
 | [case-format.md](docs/case-format.md) | The files a case is made of |
 | [data.md](docs/data.md) | Datasets, licences, and adding more |
-| [roadmap.md](docs/roadmap.md) | What is done and what comes next |
+| [ai-plan.md](docs/ai-plan.md) | The AI second reader: data, splits, training, evaluation |
+| [report-format.md](docs/report-format.md) | The drafted report's layout and the rules its checker enforces |
+| [study-plan.md](docs/study-plan.md) | Draft protocol for the learner study (needs ethics approval) |
+| [related-work.md](docs/related-work.md) | What others have built, and where this project fits |
 | [deploying.md](docs/deploying.md) | Putting it online (Cloudflare Workers + R2) |
 | [safety.md](docs/safety.md) | The rules this project keeps |
 | [AGENTS.md](AGENTS.md) | Orientation for AI coding agents working in this repo |

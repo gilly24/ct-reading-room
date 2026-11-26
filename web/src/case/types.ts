@@ -68,15 +68,37 @@ export type Lesion = {
   boxes: [number, number, number, number, number][];
 };
 
+export type LabelFile = {
+  file: string;
+  encoding: string;
+  shape: [number, number, number];
+  classes: Record<string, string>;
+};
+
 export type Truth = {
   schema: 1;
   caseId: string;
   note: string;
-  labels: {
-    file: string;
-    encoding: string;
-    shape: [number, number, number];
-    classes: Record<string, string>;
+  labels: LabelFile;
+  lesions: Lesion[];
+};
+
+/** ai.json: a model's outlines of the case, measured by the same code as the reference. */
+export type AiFindings = {
+  schema: 1;
+  caseId: string;
+  model: {
+    name: string;
+    version: string;
+    architecture: string;
+    trainedOn: { dataset: string; patients: number };
+    /** Path of the model card in the repository, or null. */
+    card: string | null;
   };
+  /** Always true: the pipeline refuses to write findings for a patient the model trained on. */
+  heldOut: true;
+  note: string;
+  labels: LabelFile;
+  files: { seg?: string };
   lesions: Lesion[];
 };

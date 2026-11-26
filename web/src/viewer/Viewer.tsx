@@ -20,7 +20,7 @@ import {
   ZoomTool,
 } from "@cornerstonejs/tools";
 import { type Ref, type RefObject, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { LESION_COLOURS } from "../case/classes";
+import { AI_COLOUR, AI_RGB, LESION_COLOURS } from "../case/classes";
 import { caseUrl, type LabelVolume } from "../case/load";
 import type { CaseMeta, Lesion, PixelPoint } from "../case/types";
 import type { Mark } from "../read/marks";
@@ -44,7 +44,7 @@ import {
   type ViewName,
   VIEWS,
 } from "./mpr";
-import { paintOutlines, type PixelTransform, SliceCache } from "./outlines";
+import { type OutlineStyle, paintOutlines, type PixelTransform, SliceCache } from "./outlines";
 import { SliceQueue } from "./slices";
 
 /** Images fetched before the first is shown: the opening image and the ones after it, so the first scrolls are smooth. */
@@ -94,6 +94,9 @@ type Props = {
   /** The reference label volume, once loaded. */
   labels: LabelVolume | null;
   showOutlines: boolean;
+  /** The AI's lesions (boxes and long axes) and outlines, after hand-in, or null. */
+  ai: Lesion[] | null;
+  aiLabels: LabelVolume | null;
   /** Three views side by side, or one filling the space. */
   layout: Layout;
   /** The view shown when the layout is single. */
@@ -109,8 +112,11 @@ type Props = {
 };
 
 type Shape =
-  | { type: "box"; x: number; y: number; w: number; h: number; colour: string; label: string }
-  | { type: "line"; x1: number; y1: number; x2: number; y2: number };
+  | { type: "box"; x: number; y: number; w: number; h: number; colour: string; label: string; labelBelow?: boolean }
+  | { type: "line"; x1: number; y1: number; x2: number; y2: number; colour: string };
+
+/** A label volume drawn over the axial view: the reference's, or the AI's. */
+type OutlineLayer = { labels: LabelVolume | null; show: boolean; cache: SliceCache | null; style: OutlineStyle };
 
 /** One crosshair line: where another view's plane cuts this one, in canvas pixels. */
 type Line = { plane: ViewName; a: Point2; b: Point2 };
@@ -167,6 +173,8 @@ export function Viewer({
   reference,
   labels,
   showOutlines,
+  ai,
+  aiLabels,
   layout,
   focus,
   showLines,
@@ -200,14 +208,18 @@ export function Viewer({
   showLinesRef.current = showLines;
   const referenceRef = useRef(reference);
   referenceRef.current = reference;
+  const aiRef = useRef(ai);
+  aiRef.current = ai;
   const outlineCanvas = useRef<HTMLCanvasElement>(null);
-  const outlineState = useRef<{ labels: LabelVolume | null; show: boolean; cache: SliceCache | null }>({
-    labels: null,
-    show: false,
-    cache: null,
+  const aiCanvas = useRef<HTMLCanvasElement>(null);
+  const layers = useRef<{ reference: OutlineLayer; ai: OutlineLayer }>({
+    reference: { labels: null, show: false, cache: null, style: { kind: "classes" } },
+    ai: { labels: null, show: false, cache: null, style: { kind: "dotted", colour: AI_RGB } },
   });
-  outlineState.current.labels = labels;
-  outlineState.current.show = showOutlines;
+  layers.current.reference.labels = labels;
+  layers.current.reference.show = showOutlines;
+  layers.current.ai.labels = aiLabels;
+  layers.current.ai.show = aiLabels !== null;
   const redrawRef = useRef<() => void>(() => {});
   const callbacks = useRef({ onMarks, onReady, onMenu, onLayout });
   callbacks.current = { onMarks, onReady, onMenu, onLayout };
@@ -231,22 +243,28 @@ export function Viewer({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!live.current) return;
-        const next = readView(live.current, referenceRef.current);
+        const next = readView(live.current, referenceRef.current, aiRef.current);
         live.current.queue.focus = next.slice;
         setView(next);
         drawOutlines(next);
       });
     };
     const drawOutlines = (state: ViewState) => {
-      const canvas = outlineCanvas.current;
-      if (!canvas) return;
-      const o = outlineState.current;
-      if (!o.labels || !o.show) {
-        paintOutlines(canvas, null, null);
-        return;
+      const pairs: [HTMLCanvasElement | null, OutlineLayer][] = [
+        [outlineCanvas.current, layers.current.reference],
+        [aiCanvas.current, layers.current.ai],
+      ];
+      for (const [canvas, o] of pairs) {
+        if (!canvas) continue;
+        if (!o.labels || !o.show) {
+          paintOutlines(canvas, null, null);
+          continue;
+        }
+        if (!o.cache?.holds(o.labels.data)) {
+          o.cache = new SliceCache(o.labels.data, meta.geometry.rows, meta.geometry.columns, o.style);
+        }
+        paintOutlines(canvas, o.cache.get(state.slice), state.transform);
       }
-      if (!o.cache?.holds(o.labels.data)) o.cache = new SliceCache(o.labels.data, meta.geometry.rows, meta.geometry.columns);
-      paintOutlines(canvas, o.cache.get(state.slice), state.transform);
     };
     redrawRef.current = redraw;
     const emitMarks = () => {
@@ -462,15 +480,15 @@ export function Viewer({
     if (live.current) applyTools(live.current.groups, tool, canMeasure);
   }, [tool, canMeasure, view === null]);
 
-  // Reference shapes changed: redraw the overlay.
+  // Reference or AI shapes changed: redraw the overlay.
   useEffect(() => {
     redrawRef.current();
-  }, [reference]);
+  }, [reference, ai]);
 
   // Outlines switched on or off, or just loaded.
   useEffect(() => {
     redrawRef.current();
-  }, [labels, showOutlines]);
+  }, [labels, showOutlines, aiLabels]);
 
   // Crosshair lines: a press on a line drags it, which moves that line's view through the case.
   // A right click without a drag opens the menu. Both are caught before Cornerstone sees them.
@@ -675,20 +693,21 @@ export function Viewer({
           >
             <div className="vp-canvas" ref={elements[name]} />
             {name === "axial" && <canvas className="viewer-outlines" ref={outlineCanvas} aria-hidden="true" />}
+            {name === "axial" && <canvas className="viewer-outlines" ref={aiCanvas} aria-hidden="true" />}
             {name === "axial" && view && (
               <svg className="viewer-overlay" aria-hidden="true">
                 {view.shapes.map((s, i) =>
                   s.type === "box" ? (
                     <g key={i}>
                       <rect x={s.x} y={s.y} width={s.w} height={s.h} stroke={s.colour} />
-                      <text x={s.x} y={s.y - 5} fill={s.colour}>
+                      <text x={s.x} y={s.labelBelow ? s.y + s.h + 14 : s.y - 5} fill={s.colour}>
                         {s.label}
                       </text>
                     </g>
                   ) : (
                     <g key={i}>
                       <line className="halo" x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />
-                      <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#fff" />
+                      <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.colour} />
                     </g>
                   ),
                 )}
@@ -811,7 +830,7 @@ function applyTools(groups: Live["groups"], tool: ToolChoice, canMeasure: boolea
   }
 }
 
-function readView(current: Live, reference: Lesion[] | null): ViewState {
+function readView(current: Live, reference: Lesion[] | null, ai: Lesion[] | null): ViewState {
   const { viewports, imageIds, sides } = current;
   const axial = viewports.axial as Types.IStackViewport;
   const slice = axial.getCurrentImageIdIndex();
@@ -827,8 +846,13 @@ function readView(current: Live, reference: Lesion[] | null): ViewState {
   };
 
   const shapes: Shape[] = [];
-  for (const lesion of reference ?? []) {
-    const colour = LESION_COLOURS[lesion.kind];
+  // The reference's boxes are labelled above, in the lesion's colour; the AI's below, in its own.
+  const layers = [
+    ...(reference ?? []).map((lesion) => ({ lesion, ai: false })),
+    ...(ai ?? []).map((lesion) => ({ lesion, ai: true })),
+  ];
+  for (const { lesion, ai: byAi } of layers) {
+    const colour = byAi ? AI_COLOUR : LESION_COLOURS[lesion.kind];
     const box = lesion.boxes.find((b) => b[0] === slice);
     if (box) {
       const a = toCanvas([box[1] - 0.5, box[2] - 0.5]);
@@ -842,7 +866,8 @@ function readView(current: Live, reference: Lesion[] | null): ViewState {
           w: Math.abs(b[0] - a[0]) + 2 * pad,
           h: Math.abs(b[1] - a[1]) + 2 * pad,
           colour,
-          label: `${lesion.id} · ${Math.round(lesion.longAxisMm)} mm`,
+          label: `${byAi ? "AI " : ""}${lesion.id} · ${Math.round(lesion.longAxisMm)} mm`,
+          labelBelow: byAi,
         });
       }
     }
@@ -850,7 +875,7 @@ function readView(current: Live, reference: Lesion[] | null): ViewState {
       const a = toCanvas(lesion.longAxis.from);
       const b = toCanvas(lesion.longAxis.to);
       if (a && b) {
-        shapes.push({ type: "line", x1: a[0], y1: a[1], x2: b[0], y2: b[1] });
+        shapes.push({ type: "line", x1: a[0], y1: a[1], x2: b[0], y2: b[1], colour: byAi ? AI_COLOUR : "#fff" });
       }
     }
   }

@@ -3,8 +3,7 @@ import type { CaseSummary } from "./case/types";
 import { CaseList } from "./components/CaseList";
 import { ReadingRoom } from "./components/ReadingRoom";
 import { loadIndex } from "./case/load";
-
-const REPO_URL = "https://github.com/gilly24/ct-reading-room";
+import { REPO_URL } from "./site";
 
 function useRoute(): string {
   const [hash, setHash] = useState(window.location.hash);

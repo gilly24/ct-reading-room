@@ -18,7 +18,7 @@ dependencies = [
 [project.optional-dependencies]
 # pylibjpeg-openjpeg lets pydicom decode HTJ2K with OpenJPEG, a second decoder for the round-trip test.
 dev = ["pytest>=8", "pylibjpeg>=2.0", "pylibjpeg-openjpeg>=2.4"]
-# `ctrr train-data`: writes the nnU-Net training set as NIfTI (docs/training.md)
+# `ctrr train-data`, `ai-input` and `ai`: NIfTI in and out for the model (docs/training.md)
 train = ["simpleitk>=2.4"]
 
 [project.scripts]

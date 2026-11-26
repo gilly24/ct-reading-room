@@ -7,8 +7,8 @@ Orientation for anyone, human or agent, working in this repository.
 A portfolio project: a browser-based radiology reading room for abdominal CT.
 A person reads a scan, measures lesions and drafts a report; the site then
 compares their read with the radiologists' outlines. An AI second reader is
-being added (docs/roadmap.md). It is an educational demo and must stay one
-(docs/safety.md).
+being added. It is an educational demo and must stay one (docs/safety.md).
+The plan and its decisions: docs/project.md; the order of work: docs/roadmap.md.
 
 ## Layout
 
@@ -28,6 +28,8 @@ cd web && pnpm typecheck && pnpm test && pnpm build
 cd pipeline && uv sync --extra dev && uv run pytest
 cd pipeline && uv run ctrr phantom          # rebuild the synthetic tutorial case
 cd pipeline && uv run ctrr fetch-kits --count 5 && uv run ctrr build-kits
+cd pipeline && uv run ctrr ai-input kits-00002   # CT as NIfTI for the model
+cd pipeline && uv run ctrr ai kits-00002 --prediction p.nii.gz --model model.json
 cd web && pnpm deploy:check                 # wrangler dry run of the Cloudflare deploy
 cd web && pnpm upload-cases                 # put local cases in the R2 bucket (docs/deploying.md)
 ```
@@ -46,8 +48,13 @@ data. Do not add one.
 **The drafter states measurements; people decide what they mean.** The report
 draft (`web/src/read/report.ts`) lists organ, side, size and image number. It
 never writes a diagnosis or an impression, and its test checks for words like
-"carcinoma" and "malignant". When the AI arrives, every number in its draft
-must come from a measurement, never from a language model.
+"carcinoma" and "malignant". Every number the AI shows comes from measuring
+its outlines with `findings.py`, never from a language model.
+
+**A model never reads a patient it trained on.** `ctrr ai` refuses a case whose
+patient is in the model's `trainedOn` list, and ai.json says `heldOut: true`.
+Its read loads only at hand-in, like the answers. Never put made-up AI output
+on the site: fake predictions belong in tests.
 
 **The case format is a contract.** `pipeline/ctrr/bundle.py` writes it,
 `web/src/case/types.ts` reads it, and `docs/case-format.md` describes it.

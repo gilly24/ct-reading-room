@@ -20,13 +20,12 @@ from pydicom.uid import ExplicitVRLittleEndian, generate_uid
 from scipy import ndimage
 
 from .dicom_io import CT_IMAGE_STORAGE
+from .seg_io import MORPHOLOGICALLY_ALTERED
 
 ROWS = COLS = 192
 PIXEL_MM = 1.8
 SLICES = 48
 SLICE_MM = 4.0
-
-MORPHOLOGICALLY_ALTERED = hd.sr.CodedConcept("49755003", "SCT", "Morphologically Altered Structure")
 
 
 @dataclass(frozen=True)

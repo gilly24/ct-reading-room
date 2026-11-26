@@ -192,6 +192,10 @@ and train again, the test set is spent, and the model card has to say so.
 
 ### Which preset, which GPU
 
+On the author's own RTX 3080 (10 or 12 GB), use ResEnc M; ai-plan.md has the
+commands and a lower memory target if it runs out. The rest of this section is
+for a rented GPU.
+
 nnU-Net's ResEnc presets differ in how much GPU memory they are planned for.
 These figures are from nnU-Net's own
 [resenc_presets.md](https://github.com/MIC-DKFZ/nnUNet/blob/master/documentation/resenc_presets.md),
