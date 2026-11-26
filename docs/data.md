@@ -26,7 +26,9 @@ The original CT files are about 0.5 MB a slice. The pipeline recompresses them
 losslessly as HTJ2K, 2.5–3× smaller: the 261-slice kits-00002 goes from 138 MB
 to 47 MB. The viewer shows the first image before the rest arrive, so case size
 now decides how long the whole case takes to fill in, not how long the first
-image takes.
+image takes. `fetch-kits` skips studies over 300 slices (`--max-slices`), which
+keeps a website case to about 60 MB; the largest now, the 270-slice kits-00003,
+is 56 MB.
 
 All 210 studies are also the AI's training data: 23.5 GB of outlined CT plus
 3 GB of SEGs, split once into 170 training and 40 held-out patients
