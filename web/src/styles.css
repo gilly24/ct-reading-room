@@ -13,6 +13,7 @@
   --bad: #ff7a6b;
   --tumour: #ff8a3d;
   --cyst: #6fe3c4;
+  --ai: #9b8cff;
   --radius: 8px;
   /* PACS toolbar and viewport frame */
   --toolbar: #202a36;
@@ -823,6 +824,27 @@ textarea {
 
 .lesion.cyst {
   border-left-color: var(--cyst);
+}
+
+/* The AI's read: its own colour, the one its outlines are drawn in. */
+.lesion.ai {
+  border-left: 3px dotted var(--ai);
+}
+
+.ai-read h2 {
+  color: var(--ai);
+}
+
+.ai-read .stats {
+  margin-bottom: 8px;
+}
+
+.ai-read details {
+  margin-top: 10px;
+}
+
+.model-note {
+  margin-top: 10px !important;
 }
 
 .toggles {

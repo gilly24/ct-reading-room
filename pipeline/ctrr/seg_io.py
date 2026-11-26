@@ -6,6 +6,7 @@ from pathlib import Path
 
 import highdicom as hd
 import numpy as np
+from pydicom.sr.codedict import codes
 
 from .dicom_io import CtSeries
 
@@ -22,6 +23,18 @@ CLASSES: dict[int, str] = {
 CLASS_VALUE = {name: value for value, name in CLASSES.items()}
 LESION_CLASSES = ("tumour", "cyst")
 ORGAN_CLASSES = ("kidney", "liver", "pancreas", "spleen")
+
+MORPHOLOGICALLY_ALTERED = hd.sr.CodedConcept("49755003", "SCT", "Morphologically Altered Structure")
+
+# Category and type of each class, for the DICOM SEG files the pipeline writes.
+SEGMENT_CODES: dict[str, tuple[hd.sr.CodedConcept, hd.sr.CodedConcept]] = {
+    "kidney": (codes.SCT.AnatomicalStructure, codes.SCT.Kidney),
+    "tumour": (MORPHOLOGICALLY_ALTERED, codes.SCT.Neoplasm),
+    "cyst": (MORPHOLOGICALLY_ALTERED, codes.SCT.Cyst),
+    "liver": (codes.SCT.AnatomicalStructure, codes.SCT.Liver),
+    "pancreas": (codes.SCT.AnatomicalStructure, codes.SCT.Pancreas),
+    "spleen": (codes.SCT.AnatomicalStructure, codes.SCT.Spleen),
+}
 
 # When segments overlap, the higher priority wins the voxel.
 _PRIORITY = {"tumour": 3, "cyst": 2, "kidney": 1, "liver": 1, "pancreas": 1, "spleen": 1}

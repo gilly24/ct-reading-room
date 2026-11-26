@@ -77,28 +77,31 @@ def write_case(
         "ai": None,
     }
 
-    labels_name = "labels.u8.gz"
-    # No timestamp or file name in the gzip header, so the same labels make the same bytes.
-    with open(folder / labels_name, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as f:
-        f.write(np.ascontiguousarray(labels, dtype=np.uint8).tobytes(order="C"))
-
-    present = sorted(int(v) for v in np.unique(labels) if v != 0)
     truth = {
         "schema": SCHEMA_VERSION,
         "caseId": case_id,
         "note": truth_note,
-        "labels": {
-            "file": labels_name,
-            "encoding": "uint8, gzip, C order (slice, row, column), same slice order as images",
-            "shape": list(labels.shape),
-            "classes": {str(v): CLASSES[v] for v in present},
-        },
+        "labels": write_label_volume(folder, "labels.u8.gz", labels),
         "lesions": [lesion.to_json() for lesion in lesions],
     }
 
-    _write_json(folder / "case.json", case)
-    _write_json(folder / "truth.json", truth)
+    write_json(folder / "case.json", case)
+    write_json(folder / "truth.json", truth)
     return folder
+
+
+def write_label_volume(folder: Path, name: str, labels: np.ndarray) -> dict:
+    """Write a label volume as gzipped bytes and return the "labels" entry that describes it."""
+    # No timestamp or file name in the gzip header, so the same labels make the same bytes.
+    with open(Path(folder) / name, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as f:
+        f.write(np.ascontiguousarray(labels, dtype=np.uint8).tobytes(order="C"))
+    present = sorted(int(v) for v in np.unique(labels) if v != 0)
+    return {
+        "file": name,
+        "encoding": "uint8, gzip, C order (slice, row, column), same slice order as images",
+        "shape": list(labels.shape),
+        "classes": {str(v): CLASSES[v] for v in present},
+    }
 
 
 def write_htj2k(src: Path, dest: Path) -> None:
@@ -156,9 +159,9 @@ def write_index(cases_root: Path) -> Path:
     # The phantom is the tutorial, so it goes first.
     entries.sort(key=lambda e: (not e["id"].startswith("phantom"), e["id"]))
     path = Path(cases_root) / "index.json"
-    _write_json(path, {"schema": SCHEMA_VERSION, "cases": entries})
+    write_json(path, {"schema": SCHEMA_VERSION, "cases": entries})
     return path
 
 
-def _write_json(path: Path, data: dict) -> None:
+def write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")

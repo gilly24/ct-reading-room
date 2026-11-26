@@ -11,7 +11,9 @@ cases/
     ct/0000.dcm …         the CT, one DICOM file per slice, head first, lossless HTJ2K
     truth.json            the reference lesions, loaded only at hand-in
     labels.u8.gz          the reference outlines, loaded only at hand-in
-    ai.json               (milestone 2) the AI's findings
+    ai.json               the AI's findings, if a model has read the case; loaded only at hand-in
+    ai-labels.u8.gz       the AI's outlines, same format as labels.u8.gz
+    ai-seg.dcm            the AI's outlines as DICOM SEG, for a PACS (the site does not read it)
 ```
 
 ## index.json
@@ -73,10 +75,35 @@ Each lesion:
 | `centroidWorld` | `[x, y, z]` in DICOM patient coordinates (LPS, mm) |
 | `boxes` | `[slice, row0, col0, row1, col1]` for every slice it is on |
 
+## ai.json
+
+Written by `ctrr ai` (`pipeline/ctrr/ai.py`) from a model's outlines, measured
+by the same `findings.py` as the reference, so its lesions have exactly the
+truth.json shape above.
+
+```json
+{ "schema": 1, "caseId": "kits-00002",
+  "model": { "name": "…", "version": "…", "architecture": "…",
+             "trainedOn": { "dataset": "C4KC-KiTS", "patients": 165 },
+             "card": "docs/model-card.md" },
+  "heldOut": true,
+  "note": "who made the outlines, and that this case was not trained on",
+  "labels": { "file": "ai-labels.u8.gz", "shape": [261, 512, 512],
+              "classes": { "1": "kidney", "2": "tumour" } },
+  "files": { "seg": "ai-seg.dcm" },
+  "lesions": [ { … } ] }
+```
+
+`heldOut` is always `true`: `ctrr ai` refuses to write findings for a case
+whose patient is in the model's training list, and the site refuses an ai.json
+without it. Lesion ids are the AI's own (`T1` is its largest tumour, not the
+reference's T1).
+
 ## labels.u8.gz
 
 One byte per voxel, gzip-compressed, in C order: slice, then row, then column,
-slices in the same head-first order as `images`. Values:
+slices in the same head-first order as `images`. `ai-labels.u8.gz` is the same.
+Values:
 
 | value | class |
 |---|---|

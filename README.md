@@ -5,8 +5,9 @@ images, find every kidney tumour, measure it, and watch the report draft itself
 from your measurements. Then hand in your read to see the radiologists'
 outlines and how close you were.
 
-An AI second reader that finds, measures and drafts the same report is the next
-milestone ([roadmap](docs/roadmap.md)).
+An AI second reader that finds, measures and drafts the same report is being
+built ([roadmap](docs/roadmap.md)): the site and pipeline are ready for it, and
+the model is next to be trained.
 
 > **Educational demo, not for clinical use.** Every scan here is a
 > de-identified public research scan or a synthetic one. Nothing on this site

@@ -13,6 +13,8 @@ dependencies = [
   "idc-index>=0.13",
   # Writes the HTJ2K codestreams (OpenJPH). pydicom has no HTJ2K encoder.
   "imagecodecs>=2026.11.11",
+  # NIfTI in and out for the AI model: nnU-Net reads and writes images with it.
+  "simpleitk>=2.4",
 ]
 
 [project.optional-dependencies]

@@ -4,6 +4,9 @@
     ctrr fetch-kits --count 5    # download 5 kidney-tumour studies from IDC
     ctrr build-kits              # turn everything fetched into cases
     ctrr index                   # rewrite cases/index.json
+    ctrr ai-input kits-00002     # a case's CT as NIfTI, for the AI model to read
+    ctrr ai kits-00002 --prediction kits-00002.nii.gz --model model.json
+                                 # measure the model's outlines and add them to the case
 
 Cases are written to ../web/public/cases unless --cases says otherwise.
 """
@@ -15,9 +18,11 @@ import logging
 import tempfile
 from pathlib import Path
 
-from . import idc
+from . import idc, nifti
+from .ai import Model, write_ai
 from .build import build_case
 from .bundle import write_index
+from .dicom_io import load_case_ct
 from .phantom import make_phantom
 
 HERE = Path(__file__).resolve().parent.parent
@@ -51,8 +56,19 @@ def main(argv: list[str] | None = None) -> None:
 
     sub.add_parser("index", help="rewrite cases/index.json")
 
+    ai_input = sub.add_parser("ai-input", help="write cases' CT as NIfTI for the model (nnU-Net's <case>_0000.nii.gz)")
+    ai_input.add_argument("case_ids", nargs="+")
+    ai_input.add_argument("--out", type=Path, default=HERE / ".data" / "ai-input")
+
+    ai = sub.add_parser("ai", help="measure a model's outlines of a case and add them to the case")
+    ai.add_argument("case_id")
+    ai.add_argument("--prediction", type=Path, required=True, help="the model's label NIfTI for this case")
+    ai.add_argument("--model", type=Path, required=True, help="model.json: name, labels and the patients it trained on")
+
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    # highdicom narrates every attribute it copies into a SEG.
+    logging.getLogger("highdicom").setLevel(logging.WARNING)
     args.cases.mkdir(parents=True, exist_ok=True)
 
     if args.command == "phantom":
@@ -91,6 +107,19 @@ def main(argv: list[str] | None = None) -> None:
                 description=f"CT abdomen, {fetched.ct_description or 'unknown phase'} phase",
             )
             print(f"wrote {folder}")
+
+    elif args.command == "ai-input":
+        args.out.mkdir(parents=True, exist_ok=True)
+        for case_id in args.case_ids:
+            path = nifti.write_ct(load_case_ct(args.cases / case_id), args.out / f"{case_id}_0000.nii.gz")
+            print(f"wrote {path}")
+        return
+
+    elif args.command == "ai":
+        folder = args.cases / args.case_id
+        prediction = nifti.read_labels(args.prediction, load_case_ct(folder))
+        path = write_ai(folder, prediction, Model.load(args.model))
+        print(f"wrote {path}")
 
     path = write_index(args.cases)
     print(f"wrote {path}")

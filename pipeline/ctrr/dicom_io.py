@@ -5,9 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import imagecodecs
 import numpy as np
 import pydicom
 from pydicom.dataset import Dataset
+from pydicom.encaps import generate_frames
+from pydicom.uid import HTJ2K, HTJ2KLossless, HTJ2KLosslessRPCL
 
 CT_IMAGE_STORAGE = "1.2.840.10008.5.1.4.1.1.2"
 ENHANCED_CT_IMAGE_STORAGE = "1.2.840.10008.5.1.4.1.1.2.1"
@@ -54,6 +57,14 @@ class CtSeries:
             + self.row_direction * (col * self.pixel_spacing[1])
             + self.column_direction * (row * self.pixel_spacing[0])
         )
+
+
+def load_case_ct(case_folder: Path) -> CtSeries:
+    """The CT of a built case (its ct/ folder), as a series. The files are HTJ2K."""
+    paths = sorted((Path(case_folder) / "ct").glob("*.dcm"))
+    if not paths:
+        raise ValueError(f"{case_folder}: no ct/*.dcm")
+    return load_ct_series(paths)
 
 
 def find_dicom_files(directory: Path) -> list[Path]:
@@ -136,8 +147,23 @@ def load_ct_series(paths: list[Path]) -> CtSeries:
     )
 
 
+_HTJ2K = {HTJ2K, HTJ2KLossless, HTJ2KLosslessRPCL}
+
+
+def _stored_values(ds: Dataset) -> np.ndarray:
+    """The stored pixel values. A built case's files are HTJ2K, which pydicom cannot
+    decode without an extra plugin, so imagecodecs (already used to write them) does."""
+    if ds.file_meta.TransferSyntaxUID in _HTJ2K:
+        frame = next(generate_frames(ds.PixelData, number_of_frames=1))
+        values = imagecodecs.htj2k_decode(frame)
+        if values.shape != (int(ds.Rows), int(ds.Columns)):
+            raise ValueError(f"{ds.SOPInstanceUID}: decoded {values.shape}, expected {ds.Rows} x {ds.Columns}")
+        return values
+    return ds.pixel_array
+
+
 def _to_hu(ds: Dataset) -> np.ndarray:
-    pixels = ds.pixel_array.astype(np.float32)
+    pixels = _stored_values(ds).astype(np.float32)
     slope = float(getattr(ds, "RescaleSlope", 1) or 1)
     intercept = float(getattr(ds, "RescaleIntercept", 0) or 0)
     return pixels * slope + intercept

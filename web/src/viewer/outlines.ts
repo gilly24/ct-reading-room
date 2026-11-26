@@ -9,8 +9,18 @@ const LESION = new Set(["tumour", "cyst"]);
 
 const COLOURS: [number, number, number][] = NAMES.map((name) => CLASS_COLOURS[name] ?? [0, 0, 0]);
 
-/** One slice of the label volume as an image: solid edges, faint fill. */
-export function rasteriseSlice(labels: Uint8Array, slice: number, rows: number, cols: number): HTMLCanvasElement {
+/** How a label volume is drawn: the reference in its class colours, or a reader such as the AI in one colour. */
+export type OutlineStyle = { kind: "classes" } | { kind: "dotted"; colour: [number, number, number] };
+
+/** One slice of the label volume as an image. The reference: solid edges, faint fill. Dotted: edges only,
+ *  every third pixel left out, so an outline that lies exactly on the reference's leaves it visible. */
+export function rasteriseSlice(
+  labels: Uint8Array,
+  slice: number,
+  rows: number,
+  cols: number,
+  style: OutlineStyle = { kind: "classes" },
+): HTMLCanvasElement {
   const offset = slice * rows * cols;
   const image = new ImageData(cols, rows);
   const px = image.data;
@@ -23,8 +33,15 @@ export function rasteriseSlice(labels: Uint8Array, slice: number, rows: number, 
         c === 0 || c === cols - 1 || r === 0 || r === rows - 1 ||
         labels[offset + i - 1] !== v || labels[offset + i + 1] !== v ||
         labels[offset + i - cols] !== v || labels[offset + i + cols] !== v;
-      const [red, green, blue] = COLOURS[v];
       const o = i * 4;
+      if (style.kind === "dotted") {
+        // Only lesions: the AI's kidneys would just repeat the reference's.
+        if (!edge || !LESION.has(NAMES[v]) || (r + c) % 3 === 2) continue;
+        [px[o], px[o + 1], px[o + 2]] = style.colour;
+        px[o + 3] = 255;
+        continue;
+      }
+      const [red, green, blue] = COLOURS[v];
       px[o] = red;
       px[o + 1] = green;
       px[o + 2] = blue;
@@ -64,14 +81,20 @@ export function paintOutlines(target: HTMLCanvasElement, slice: HTMLCanvasElemen
 /** Keeps the last few rasterised slices, so scrolling back and forth stays cheap. */
 export class SliceCache {
   private entries = new Map<number, HTMLCanvasElement>();
-  constructor(private labels: Uint8Array, private rows: number, private cols: number, private size = 12) {}
+  constructor(
+    private labels: Uint8Array,
+    private rows: number,
+    private cols: number,
+    private style: OutlineStyle = { kind: "classes" },
+    private size = 12,
+  ) {}
 
   get(slice: number): HTMLCanvasElement {
     let canvas = this.entries.get(slice);
     if (canvas) {
       this.entries.delete(slice);
     } else {
-      canvas = rasteriseSlice(this.labels, slice, this.rows, this.cols);
+      canvas = rasteriseSlice(this.labels, slice, this.rows, this.cols, this.style);
       if (this.entries.size >= this.size) this.entries.delete(this.entries.keys().next().value!);
     }
     this.entries.set(slice, canvas);

@@ -115,8 +115,18 @@ reference long axis.
 **Report** (`read/report.ts`, pure, unit-tested). Findings grouped by organ,
 largest first: place, size, kind, image number, and HU and volume when they are
 known. The impression is always left for a person. The same function drafts
-from the reader's marks and from the reference, and will draft from the AI's
-findings.
+from the reader's marks, from the reference and from the AI's findings.
+
+**The AI second reader** (`pipeline/ctrr/ai.py`, `web/src/read/ai.ts`). A
+segmentation model outlines the kidneys and tumours; `ctrr ai` measures its
+outlines with the same `findings.py` as the reference, so every number shown
+for the AI is a measurement of what it drew. It refuses a case whose patient
+the model trained on. On the site the AI's read loads with the answers, never
+before, so it cannot steer the reader's own. Its lesions become marks (their
+long axes) and go through the same `scoreRead` as the reader's: found, false
+positives, size error, side by side. Its outlines are drawn dotted, lesions
+only, in a colour nothing else uses, so they stay visible where they lie on
+the reference's.
 
 ## Decisions, and why
 
@@ -130,6 +140,6 @@ findings.
 - **No uploads, ever.** See safety.md.
 - **Labels as one gzipped byte volume**, not DICOM SEG, in the browser. It is
   one fetch, about 100 kB for a whole case, and needs no parser. The pipeline
-  still reads and (from milestone 2) writes real DICOM SEG.
+  still reads real DICOM SEG, and writes the AI's outlines as one too.
 - **Answers load only on hand-in.** `truth.json` and the labels are fetched
   when the reader hands in, and `index.json` holds nothing about findings.

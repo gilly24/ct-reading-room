@@ -19,16 +19,20 @@ reader's and the reference.
 
 - [ ] Train nnU-Net v2 (ResEnc preset) on KiTS (kidney + tumour). Hold out whole
       cases; never test on a case it trained on.
-- [ ] `ctrr ai`: run the model on a case, measure its output with the same
-      `findings.py`, write `ai.json` (same lesion shape as `truth.json`) and
-      `ai-labels.u8.gz`.
-- [ ] Also write the output as DICOM SEG (outlines) and DICOM SR (measurements)
-      with highdicom, so it opens in any PACS viewer.
-- [ ] Web: an "AI findings" toggle after hand-in, and a "Report with AI" mode
-      where the AI's findings are pre-filled and the reader accepts or rejects
-      each one.
-- [ ] Score the AI like a reader, per case and overall (sensitivity, false
-      positives per case, size error), on the model card.
+- [x] `ctrr ai`: measure a model's output with the same `findings.py`, write
+      `ai.json` (same lesion shape as `truth.json`) and `ai-labels.u8.gz`;
+      refuse a patient the model trained on. `ctrr ai-input` writes the CT as
+      NIfTI for nnU-Net.
+- [x] Write the outlines as DICOM SEG with highdicom, so they open in any PACS.
+- [ ] Also the measurements as DICOM SR (TID 1500).
+- [x] Web: after hand-in, the AI's outlines and measurements as their own
+      layer, with a toggle, its findings checked against the reference, and a
+      report drafted from them.
+- [ ] Web: a "Report with AI" mode where the AI's findings are pre-filled and
+      the reader accepts or rejects each one.
+- [x] Score the AI like a reader on each case, beside the reader's score.
+- [ ] Score it overall (sensitivity, false positives per case, size error) on
+      the held-out cases, for the model card.
 - [ ] Model card (`docs/model-card.md`): data, intended use, where it fails.
 
 ## 3. Report drafting with a language model

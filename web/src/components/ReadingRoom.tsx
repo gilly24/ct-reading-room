@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type LabelVolume, loadCase, loadLabels, loadTruth } from "../case/load";
-import type { CaseMeta, Lesion, Truth } from "../case/types";
+import { type LabelVolume, loadAi, loadCase, loadLabels, loadTruth } from "../case/load";
+import type { AiFindings, CaseMeta, Lesion, Truth } from "../case/types";
+import { marksFromLesions } from "../read/ai";
 import type { Mark, MarkKind } from "../read/marks";
 import { draftReport, itemFromLesion, itemFromMark } from "../read/report";
 import { scoreRead } from "../read/scoring";
@@ -92,6 +93,10 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
   const [truthError, setTruthError] = useState<string | null>(null);
   const [showOutlines, setShowOutlines] = useState(true);
   const [showReference, setShowReference] = useState(true);
+  const [ai, setAi] = useState<AiFindings | null>(null);
+  const [aiLabels, setAiLabels] = useState<LabelVolume | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [showAi, setShowAi] = useState(true);
 
   const defaultOrgan = "kidney";
   const marks: Mark[] = useMemo(
@@ -125,6 +130,15 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
     setFinishedAt(Date.now());
     setPhase("reviewing");
     setTool("scroll");
+    // The AI's read loads beside the answers, never before: it must not steer the reader's own.
+    const aiRead = meta.ai
+      ? loadAi(meta)
+          .then(async (found) => {
+            setAi(found);
+            if (found) setAiLabels(await loadLabels(meta, found));
+          })
+          .catch((e) => setAiError(String(e)))
+      : Promise.resolve();
     try {
       const t = await loadTruth(meta);
       setTruth(t);
@@ -132,6 +146,7 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
     } catch (e) {
       setTruthError(String(e));
     }
+    await aiRead;
   };
 
   const changeLayout = useCallback((next: Layout, view: ViewName) => {
@@ -182,6 +197,18 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
   const referenceReport = useMemo(
     () => (truth ? draftReport(meta, truth.lesions.map(itemFromLesion), "the reference outlines") : ""),
     [truth, meta],
+  );
+  // The AI is scored against the reference exactly as the reader is.
+  const aiScore = useMemo(
+    () =>
+      truth && ai
+        ? scoreRead(marksFromLesions(ai.lesions), truth.lesions, { pixelSpacingMm: meta.geometry.pixelSpacingMm })
+        : null,
+    [truth, ai, meta],
+  );
+  const aiReport = useMemo(
+    () => (ai ? draftReport(meta, ai.lesions.map(itemFromLesion), "the AI's outlines") : ""),
+    [ai, meta],
   );
 
   const elapsed = startedAt ? Math.max(0, Math.round(((finishedAt ?? now) - startedAt) / 1000)) : 0;
@@ -287,6 +314,8 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
           reference={reference}
           labels={phase === "reviewing" ? labels : null}
           showOutlines={showOutlines}
+          ai={phase === "reviewing" && showAi && ai ? ai.lesions : null}
+          aiLabels={phase === "reviewing" && showAi ? aiLabels : null}
           layout={layout}
           focus={focus}
           showLines={showLines}
@@ -422,20 +451,28 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
             showReference={showReference}
             onShowOutlines={setShowOutlines}
             onShowReference={setShowReference}
+            ai={ai}
+            aiError={aiError}
+            aiScore={aiScore}
+            aiReport={aiReport}
+            showAi={showAi}
+            onShowAi={setShowAi}
             onGo={(s) => viewer.current?.goToSlice(s)}
             onRestart={onRestart}
             nextCaseId={nextCaseId}
           />
         )}
 
-        <section className="panel-section">
-          <h2>AI second reader</h2>
-          <p className="muted small">
-            {meta.ai
-              ? "AI findings are available for this case."
-              : "Not run on this case yet. The model that will find and measure tumours is the next milestone (docs/roadmap.md)."}
-          </p>
-        </section>
+        {!(meta.ai && phase === "reviewing") && (
+          <section className="panel-section">
+            <h2>AI second reader</h2>
+            <p className="muted small">
+              {meta.ai
+                ? "An AI has read this case too. Its findings appear beside the answers when you hand in, so they cannot steer your read."
+                : "Not run on this case yet. The model that will find and measure tumours is being trained (docs/roadmap.md)."}
+            </p>
+          </section>
+        )}
 
         <footer className="panel-foot muted small">
           <p>
