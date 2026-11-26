@@ -72,10 +72,11 @@ Particular patients: `uv run ctrr fetch-kits --patients KiTS-00002 KiTS-00004`.
 
 ```bash
 cd web && pnpm typecheck && pnpm test && pnpm build
-cd pipeline && uv run pytest
+cd pipeline && uv sync --extra dev --extra train && uv run pytest
 ```
 
-CI runs these too on every push and pull request.
+CI runs these too on every push and pull request. The `train` extra brings
+SimpleITK, which the NIfTI tests need; without it they skip rather than run.
 
 ## Using Claude Code or another AI agent
 
