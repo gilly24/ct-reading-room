@@ -28,7 +28,7 @@ in [training-diary.md](training-diary.md).
 
 | You | Claude |
 |---|---|
-| Machine set-up, data, training, prediction | `ctrr model-json`: writes `model.json` with the 170 training patients |
+| Machine set-up, data, training, prediction | `ctrr model-json` (built): writes `model.json` with the 170 training patients |
 | Read the plans and the training log, decide on problems | Help when something breaks; review |
 | Run the evaluation, write the model card | `ctrr evaluate`, unless you write it (step E) |
 | Run `ctrr ai` and upload | The template report drafter, in parallel |
@@ -101,6 +101,24 @@ next to the lesson on the techniques it uses; write or review `ctrr evaluate`
 (step E); draft the parts of the model card that need no numbers; practise
 coding problems.
 
+### D2. Improving the model (optional, after the baseline)
+
+Train the unchanged model first: every improvement is measured against it.
+Then, only if time allows, **one change at a time, judged on fold 0's 34
+validation patients, never on the test set.**
+
+| Change | Cost | Why it might help |
+|---|---|---|
+| Post-processing chosen on validation (for example, keep only the largest kidney components, drop tiny tumour specks) | Minutes, no retraining | Removes small false positives the network leaves |
+| Region-based training: learn "kidney and tumour together" and "tumour" as nested regions | One more training run (1–3 days); a new dataset.json with `regions_class_order` | Tumours sit inside kidneys; KiTS entries have trained this way |
+| A bigger preset (ResEnc L) or all five folds as an ensemble | Needs a 24 GB GPU or about five times the time | The biggest gains in the nnU-Net Revisited comparison came from more compute |
+| A different architecture (transformer, Mamba, MedNeXt) | Days, and a new trainer class | In fair comparisons these did not beat ResEnc on kidney CT; not worth it here |
+
+With 34 validation patients, a difference of a point or two of Dice can be
+chance: look at the per-case results, not just the average. Record every run
+in the diary, including the ones that did not help. If region-based training
+is chosen, `ctrr model-json` needs to accept its labels.
+
 ### E. `ctrr evaluate`: scoring like a radiologist
 
 nnU-Net's own `nnUNetv2_evaluate_folder` reports Dice per class. A reader cares
@@ -148,7 +166,7 @@ Score it with `nnUNetv2_evaluate_folder` (training.md, with `M` for `L`) and
 ### H. On the site (an hour)
 
 ```bash
-uv run ctrr model-json --run <nnUNet results folder> --out model.json    # to build
+uv run ctrr model-json --run $nnUNet_results/Dataset501_C4KCKiTS/nnUNetTrainer__nnUNetResEncUNetMPlans__3d_fullres
 uv run ctrr ai-input kits-00002 kits-00003 kits-00004 kits-00006 kits-00007
 nnUNetv2_predict -i .data/ai-input -o .data/ai-output -d 501 -c 3d_fullres -f 0 -p nnUNetResEncUNetMPlans
 uv run ctrr ai kits-00002 --prediction .data/ai-output/kits-00002.nii.gz --model model.json

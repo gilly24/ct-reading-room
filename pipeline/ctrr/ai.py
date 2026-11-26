@@ -38,6 +38,10 @@ from .dicom_io import CtSeries, load_case_ct
 from .findings import measure_lesions
 from .seg_io import CLASS_VALUE, SEGMENT_CODES
 
+# The labels the C4KC-KiTS training set uses (train_data.TRAIN_LABELS), as model.json writes them.
+KITS_MODEL_LABELS = {"1": "kidney", "2": "tumour"}
+KITS_MODEL_NAME = "nnU-Net kidney and tumour"
+
 AI_JSON = "ai.json"
 AI_LABELS = "ai-labels.u8.gz"
 AI_SEG = "ai-seg.dcm"
@@ -76,6 +80,50 @@ class Model:
             labels=labels,
             card=data.get("card"),
         )
+
+
+def describe_model(split: dict, run: Path | None = None, fold: int = 0, card: str = "docs/model-card.md") -> dict:
+    """model.json for a model trained on a split's training patients.
+
+    `trainedOn` is every training patient, the fold's validation patients
+    included: the model was chosen on them, so they are not unseen either.
+    Refuses a split in which any test or site patient is also a training
+    patient. With `run` (nnU-Net's results folder for the model), checks that
+    the fold was trained, that the labels are the training set's, and records
+    the trainer and plans.
+    """
+    trained = sorted(split["train"])
+    held_out = set(split["test"]) | set(split.get("site_cases", []))
+    leaked = sorted(held_out & set(trained))
+    if leaked:
+        raise ValueError(f"the split trains on held-out patients: {', '.join(leaked)}")
+    architecture = "nnU-Net v2, 3D full resolution"
+    version = f"fold {fold}"
+    if run is not None:
+        run = Path(run)
+        parts = run.name.split("__")
+        if len(parts) != 3:
+            raise ValueError(f"{run.name}: expected nnU-Net's <trainer>__<plans>__<configuration> folder")
+        trainer, plans, configuration = parts
+        checkpoint = run / f"fold_{fold}" / "checkpoint_final.pth"
+        if not checkpoint.exists():
+            raise ValueError(f"{checkpoint} does not exist: fold {fold} has not finished training")
+        labels = json.loads((run / "dataset.json").read_text())["labels"]
+        expected = {"background": 0, **{name: int(value) for value, name in KITS_MODEL_LABELS.items()}}
+        if labels != expected:
+            raise ValueError(f"{run}/dataset.json labels {labels} are not the training set's {expected}")
+        architecture = f"nnU-Net v2, {configuration}, {plans}, {trainer}"
+        version = f"{plans}, fold {fold}"
+    return {
+        "schema": 1,
+        "name": KITS_MODEL_NAME,
+        "version": version,
+        "architecture": architecture,
+        "dataset": split["dataset"],
+        "trainedOn": trained,
+        "labels": KITS_MODEL_LABELS,
+        "card": card,
+    }
 
 
 def check_held_out(model: Model, case: dict) -> None:

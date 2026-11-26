@@ -212,3 +212,56 @@ def test_the_command_line_round_trip(case, model_file, tmp_path):
     prediction = nifti.write_labels(_kits_prediction(case), load_case_ct(case), tmp_path / "phantom-01.nii.gz")
     main(["--cases", str(cases), "ai", "phantom-01", "--prediction", str(prediction), "--model", str(model_file)])
     assert len(_json(case, "ai.json")["lesions"]) == 2
+
+
+# --- model.json for the trained model ------------------------------------------------
+
+
+def test_model_json_from_the_committed_split_holds_out_every_test_patient(tmp_path):
+    from ctrr.ai import check_held_out, describe_model
+    from ctrr.train_data import SITE_CASES, load_split
+
+    split = load_split()
+    described = describe_model(split)
+    assert len(described["trainedOn"]) == 170
+    assert not set(described["trainedOn"]) & set(split["test"])
+    path = tmp_path / "model.json"
+    path.write_text(json.dumps(described))
+    model = Model.load(path)
+    for patient in SITE_CASES:
+        check_held_out(model, {"id": patient.lower(), "source": {"patient": patient}})
+    trained = described["trainedOn"][0]
+    with pytest.raises(ValueError, match="would not be a fair test"):
+        check_held_out(model, {"id": "x", "source": {"patient": trained}})
+
+
+def test_model_json_refuses_a_split_that_trains_on_a_held_out_patient():
+    from ctrr.ai import describe_model
+
+    split = {"dataset": "C4KC-KiTS", "train": ["KiTS-00001", "KiTS-00002"], "test": ["KiTS-00002"], "site_cases": []}
+    with pytest.raises(ValueError, match="KiTS-00002"):
+        describe_model(split)
+
+
+def test_model_json_checks_the_nnunet_run(tmp_path):
+    from ctrr.ai import describe_model
+    from ctrr.train_data import load_split
+
+    run = tmp_path / "nnUNetTrainer__nnUNetResEncUNetMPlans__3d_fullres"
+    (run / "fold_0").mkdir(parents=True)
+    (run / "dataset.json").write_text(json.dumps({"labels": {"background": 0, "kidney": 1, "tumour": 2}}))
+    with pytest.raises(ValueError, match="has not finished training"):
+        describe_model(load_split(), run=run)
+    (run / "fold_0" / "checkpoint_final.pth").write_bytes(b"")
+    described = describe_model(load_split(), run=run)
+    assert described["version"] == "nnUNetResEncUNetMPlans, fold 0"
+    assert "nnUNetTrainer" in described["architecture"] and "3d_fullres" in described["architecture"]
+    (run / "dataset.json").write_text(json.dumps({"labels": {"background": 0, "kidney": 1, "tumor": 2}}))
+    with pytest.raises(ValueError, match="labels"):
+        describe_model(load_split(), run=run)
+
+
+def test_model_json_command(tmp_path):
+    out = tmp_path / "model.json"
+    main(["model-json", "--out", str(out)])
+    assert len(json.loads(out.read_text())["trainedOn"]) == 170

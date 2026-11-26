@@ -24,6 +24,7 @@ tests in `tests/test_train_data.py` are skipped. CI installs both.
 | `uv run ctrr build-kits` | builds a case from every fetched study |
 | `uv run ctrr index` | rewrites `cases/index.json` |
 | `uv run ctrr train-data [--raw DIR] [--out DIR]` | checks every fetched study and writes the nnU-Net training set and its report ([training.md](training.md)); writes no website cases |
+| `uv run ctrr model-json [--run DIR] [--fold N] [--out model.json]` | writes `model.json` for a model trained on the fixed split: its 170 training patients; with `--run`, checks the fold finished and records the trainer and plans |
 | `uv run ctrr ai-input CASE ... [--out DIR]` | writes each case's CT as NIfTI, `DIR/<case>_0000.nii.gz`, exactly as the training set is written |
 | `uv run ctrr ai CASE --prediction FILE --model model.json` | measures a model's label NIfTI for that case and adds `ai.json`, `ai-labels.u8.gz` and `ai-seg.dcm` to it |
 | `--cases DIR` (before the command) | write cases somewhere other than `web/public/cases` |

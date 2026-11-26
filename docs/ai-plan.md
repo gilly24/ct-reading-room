@@ -12,6 +12,7 @@ page is what comes next. Decisions and their reasons: project.md.
 | Site AI layer | After hand-in: AI outlines and boxes, AI score beside the reader's, findings checked, report from the AI | Built, tested |
 | `ctrr train-data` | C4KC-KiTS → nnU-Net dataset, every case checked, a fixed split | Built and run: 210 of 210 passed (training.md) |
 | The kidney model | nnU-Net v2, 3D full resolution, ResEnc M on the 3080 (or L on a rented GPU), fold 0 | To train |
+| `ctrr model-json` | `model.json` with the 170 training patients, checked against the split and the nnU-Net run | Built, tested |
 | `ctrr evaluate` | Held-out results for the model card | To build |
 | Anatomy | TotalSegmentator "total" model on every site case | To build |
 | Template report + checker | report-format.md | To build |

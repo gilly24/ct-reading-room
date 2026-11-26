@@ -5,6 +5,7 @@
     ctrr build-kits              # turn everything fetched into cases
     ctrr index                   # rewrite cases/index.json
     ctrr train-data              # nnU-Net training set from fetched studies (docs/training.md)
+    ctrr model-json --run DIR    # model.json for the trained model: its training patients
     ctrr ai-input kits-00002     # a case's CT as NIfTI, for the AI model to read
     ctrr ai kits-00002 --prediction kits-00002.nii.gz --model model.json
                                  # measure the model's outlines and add them to the case
@@ -17,6 +18,7 @@ Cases are written to ../web/public/cases unless --cases says otherwise.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import tempfile
 from pathlib import Path
@@ -64,6 +66,11 @@ def main(argv: list[str] | None = None) -> None:
     train.add_argument("--out", type=Path, default=HERE / ".data" / "nnUNet_raw", help="nnU-Net's nnUNet_raw folder")
     train.add_argument("--jobs", type=int, default=4, help="cases converted at once (each can take a few GB)")
 
+    model_json = sub.add_parser("model-json", help="write model.json for a model trained on the fixed split")
+    model_json.add_argument("--run", type=Path, help="nnU-Net's results folder for the model (<trainer>__<plans>__<configuration>)")
+    model_json.add_argument("--fold", type=int, default=0)
+    model_json.add_argument("--out", type=Path, default=Path("model.json"))
+
     ai_input = sub.add_parser("ai-input", help="write cases' CT as NIfTI for the model (nnU-Net's <case>_0000.nii.gz)")
     ai_input.add_argument("case_ids", nargs="+")
     ai_input.add_argument("--out", type=Path, default=HERE / ".data" / "ai-input")
@@ -77,6 +84,15 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     # highdicom narrates every attribute it copies into a SEG.
     logging.getLogger("highdicom").setLevel(logging.WARNING)
+
+    if args.command == "model-json":  # writes no website cases
+        from .ai import describe_model
+        from .train_data import load_split
+
+        model = describe_model(load_split(), run=args.run, fold=args.fold)
+        args.out.write_text(json.dumps(model, indent=1) + "\n")
+        print(f"wrote {args.out}: {model['version']}, trained on {len(model['trainedOn'])} patients")
+        return
 
     if args.command == "train-data":  # writes no website cases
         from .train_data import build_training_set  # needs the `train` extra
