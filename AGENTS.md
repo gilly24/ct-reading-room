@@ -46,9 +46,10 @@ visitor's scan turns a teaching demo into a diagnostic service holding health
 data. Do not add one.
 
 **The drafter states measurements; people decide what they mean.** The report
-draft (`web/src/read/report.ts`) lists organ, side, size and image number. It
-never writes a diagnosis or an impression, and its test checks for words like
-"carcinoma" and "malignant". Every number the AI shows comes from measuring
+draft (`web/src/read/report.ts`, laid out by `template.ts`) lists organ, side,
+size and image number. It never writes a diagnosis or an impression, and
+`checker.ts` refuses any draft that does, or that states a number, side or
+organ its findings lack (docs/report-format.md). A refused draft is never shown. Every number the AI shows comes from measuring
 its outlines with `findings.py`, never from a language model.
 
 **A model never reads a patient it trained on.** `ctrr ai` refuses a case whose

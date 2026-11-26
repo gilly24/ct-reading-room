@@ -131,6 +131,7 @@ def test_a_perfect_model_is_measured_exactly_like_the_reference(case, model_file
     assert ai["heldOut"] is True
     assert ai["model"]["trainedOn"] == {"dataset": "C4KC-KiTS", "patients": 2}
     assert ai["labels"]["classes"] == {"1": "kidney", "2": "tumour"}
+    assert ai["model"]["outlines"] == ["kidney", "tumour"]
     # The AI's labels use our values, and line up with the reference's kidneys and tumours.
     ai_labels = _labels(case, ai["labels"]["file"])
     assert np.array_equal(ai_labels == TUMOUR, _labels(case) == TUMOUR)
@@ -154,6 +155,18 @@ def test_mistakes_show_in_the_findings(case, model_file):
     t1_centre = np.add(t1["longAxis"]["from"], t1["longAxis"]["to"]) / 2
     assert any(np.linalg.norm(c - t1_centre) < 3 for c in centres)
     assert any(20 <= l["keySlice"] <= 23 and l["sliceRange"] == [20, 23] for l in lesions)
+
+
+def test_a_model_that_finds_nothing_still_says_what_it_looked_for(case, model_file):
+    # The report needs "no mass outlined by the AI", not "masses not assessed": a
+    # class the model outlines stays in its outlines when this case has none of it.
+    prediction = _kits_prediction(case)
+    prediction[prediction == 2] = 1
+    write_ai(case, prediction, Model.load(model_file))
+    ai = _json(case, "ai.json")
+    assert ai["lesions"] == []
+    assert ai["labels"]["classes"] == {"1": "kidney"}
+    assert ai["model"]["outlines"] == ["kidney", "tumour"]
 
 
 def test_the_case_points_at_its_ai_and_the_index_still_gives_nothing_away(case, model_file):

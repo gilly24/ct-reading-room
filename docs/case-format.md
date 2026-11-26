@@ -85,6 +85,7 @@ truth.json shape above.
 { "schema": 1, "caseId": "kits-00002",
   "model": { "name": "…", "version": "…", "architecture": "…",
              "trainedOn": { "dataset": "C4KC-KiTS", "patients": 165 },
+             "outlines": ["kidney", "tumour"],
              "card": "docs/model-card.md" },
   "heldOut": true,
   "note": "who made the outlines, and that this case was not trained on",
@@ -93,6 +94,12 @@ truth.json shape above.
   "files": { "seg": "ai-seg.dcm" },
   "lesions": [ { … } ] }
 ```
+
+`model.outlines` names every class the model can output, whether or not this
+case has any of it. `labels.classes` lists only the classes present in this
+case, so a case where the AI found no tumour has no `tumour` there; the report
+needs `outlines` to say "No mass outlined by the AI" rather than "not assessed"
+(report-format.md).
 
 `heldOut` is always `true`: `ctrr ai` refuses to write findings for a case
 whose patient is in the model's training list, and the site refuses an ai.json

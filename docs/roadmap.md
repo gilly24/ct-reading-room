@@ -25,10 +25,12 @@ Week 1 starts on Monday 30 November 2026. The dates are a guide; the order matte
       refuses trained patients, DICOM SEG out); on the site after hand-in, the
       AI's layer, score, findings and report
 - [x] Plan: project.md, related-work.md, ai-plan.md, report-format.md, study-plan.md
+- [x] Home page: a clear start (the tutorial), cases with their length, how a
+      read works, the keyboard controls and the colours at hand-in
 
 ## Phase 0: now
 
-- [ ] Merge the pull request so the three-view viewer is live (the AI layer
+- [x] Merge the pull request so the three-view viewer is live (the AI layer
       waits for a real model).
 
 ## Phase 1: the kidney model (weeks 1–3)
@@ -43,7 +45,8 @@ Week 1 starts on Monday 30 November 2026. The dates are a guide; the order matte
 - [ ] `model.json` with the 170 training patients as `trainedOn`.
 
 **Week 2**, while it trains
-- [ ] Report drafter reworked to the template (report-format.md), with the checker. Tested on the phantom.
+- [x] Report drafter reworked to the template (report-format.md), with the checker. Tested on the phantom.
+      (Done early, in the week before; ai.json now lists `model.outlines` for it.)
 
 **Week 3**
 - [ ] Predict the test group and the site cases. `ctrr evaluate`.
