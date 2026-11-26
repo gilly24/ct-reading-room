@@ -71,7 +71,9 @@ def fetch_kits(raw_dir: Path, count: int, max_slices: int, patients: list[str] |
             dirTemplate="%Modality_%SeriesInstanceUID",
             show_progress_bar=False,
         )
-        seg_file = next(study_dir.rglob("*.dcm"))
+        # Look only in the SEG's own folder: after an interrupted run the CT folder
+        # may already hold files, and any of them could come first.
+        seg_file = next((study_dir / f"SEG_{row.SeriesInstanceUID}").rglob("*.dcm"))
         seg = pydicom.dcmread(seg_file, stop_before_pixels=True)
         ct_uid = str(seg.ReferencedSeriesSequence[0].SeriesInstanceUID)
 

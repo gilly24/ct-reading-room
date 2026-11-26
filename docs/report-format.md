@@ -26,8 +26,10 @@ Peritoneum (fluid, collections) · Lung bases · Bones.
 1. **Measured**: organ, side, position, size, image, and attenuation and
    volume when known.
    `Left kidney: 48 × 39 mm mass at the lower pole (image 173 of 261). Mean attenuation 47 HU. Volume 35.0 cm³.`
-2. **Assessed, nothing outlined**: only for organs the AI was built to check.
-   `Right kidney: No mass or cyst outlined by the AI.`
+2. **Assessed, nothing outlined**: only for what the AI was built to check.
+   `Right kidney: No mass outlined by the AI.`
+   The kidney model is trained on masses, not cysts, so its kidney lines also
+   say `Cysts not assessed.`
 3. **Not assessed**: everything else.
    `Liver: Not assessed by the AI.`
 
@@ -46,8 +48,8 @@ TECHNIQUE: 261 axial images, 2 mm slices, arterial phase. Coronal and sagittal r
 FINDINGS:
 Liver: Not assessed by the AI.
 Spleen, pancreas and adrenal glands: Not assessed by the AI.
-Right kidney: No mass or cyst outlined by the AI.
-Left kidney: 48 × 39 mm mass at the lower pole (image 173 of 261). Mean attenuation 47 HU. Volume 35.0 cm³.
+Right kidney: No mass outlined by the AI. Cysts not assessed.
+Left kidney: 48 × 39 mm mass at the lower pole (image 173 of 261). Mean attenuation 47 HU. Volume 35.0 cm³. Cysts not assessed.
 Lymph nodes: Not assessed by the AI.
 Bowel and appendix: Not assessed by the AI.
 Peritoneum: Not assessed by the AI.

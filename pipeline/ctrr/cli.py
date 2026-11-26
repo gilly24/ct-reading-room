@@ -4,9 +4,12 @@
     ctrr fetch-kits --count 5    # download 5 kidney-tumour studies from IDC
     ctrr build-kits              # turn everything fetched into cases
     ctrr index                   # rewrite cases/index.json
+    ctrr train-data              # nnU-Net training set from fetched studies (docs/training.md)
     ctrr ai-input kits-00002     # a case's CT as NIfTI, for the AI model to read
     ctrr ai kits-00002 --prediction kits-00002.nii.gz --model model.json
                                  # measure the model's outlines and add them to the case
+
+train-data, ai-input and ai need the `train` extra (SimpleITK): uv sync --extra train
 
 Cases are written to ../web/public/cases unless --cases says otherwise.
 """
@@ -18,7 +21,7 @@ import logging
 import tempfile
 from pathlib import Path
 
-from . import idc, nifti
+from . import idc
 from .ai import Model, write_ai
 from .build import build_case
 from .bundle import write_index
@@ -56,6 +59,11 @@ def main(argv: list[str] | None = None) -> None:
 
     sub.add_parser("index", help="rewrite cases/index.json")
 
+    train = sub.add_parser("train-data", help="write the nnU-Net v2 training set and its validation report")
+    train.add_argument("--raw", type=Path, default=HERE / ".data" / "train-raw", help="where fetch-kits put the studies")
+    train.add_argument("--out", type=Path, default=HERE / ".data" / "nnUNet_raw", help="nnU-Net's nnUNet_raw folder")
+    train.add_argument("--jobs", type=int, default=4, help="cases converted at once (each can take a few GB)")
+
     ai_input = sub.add_parser("ai-input", help="write cases' CT as NIfTI for the model (nnU-Net's <case>_0000.nii.gz)")
     ai_input.add_argument("case_ids", nargs="+")
     ai_input.add_argument("--out", type=Path, default=HERE / ".data" / "ai-input")
@@ -69,6 +77,15 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     # highdicom narrates every attribute it copies into a SEG.
     logging.getLogger("highdicom").setLevel(logging.WARNING)
+
+    if args.command == "train-data":  # writes no website cases
+        from .train_data import build_training_set  # needs the `train` extra
+
+        summary = build_training_set(args.raw, args.out, jobs=args.jobs)
+        print(f"{summary['passed']} of {summary['fetched']} cases passed; "
+              f"{summary['train']} train, {summary['test']} test; report in {summary['folder']}/validation.md")
+        return
+
     args.cases.mkdir(parents=True, exist_ok=True)
 
     if args.command == "phantom":
@@ -109,6 +126,8 @@ def main(argv: list[str] | None = None) -> None:
             print(f"wrote {folder}")
 
     elif args.command == "ai-input":
+        from . import nifti  # needs the `train` extra
+
         args.out.mkdir(parents=True, exist_ok=True)
         for case_id in args.case_ids:
             path = nifti.write_ct(load_case_ct(args.cases / case_id), args.out / f"{case_id}_0000.nii.gz")
@@ -116,6 +135,8 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     elif args.command == "ai":
+        from . import nifti  # needs the `train` extra
+
         folder = args.cases / args.case_id
         prediction = nifti.read_labels(args.prediction, load_case_ct(folder))
         path = write_ai(folder, prediction, Model.load(args.model))

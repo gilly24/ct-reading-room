@@ -46,8 +46,9 @@ against the radiologists' outlines after hand-in. Served from Cloudflare,
 lossless HTJ2K, first image in about a second. See architecture.md.
 
 **2. An honest AI second reader.** [ai-plan.md](ai-plan.md) has the detail.
-- *Kidney model:* nnU-Net v2, ResEnc M preset, trained on KiTS23 (kidney,
-  tumour, cyst) on an RTX 3080, with every site case and a test group held out.
+- *Kidney model:* nnU-Net v2, ResEnc M preset, trained on C4KC-KiTS (kidney,
+  tumour) on an RTX 3080, with every site case and a test group held out. The
+  training data is built and checked (training.md).
 - *Anatomy:* TotalSegmentator's open "total" model names the organs, measures
   them, and decides which organs the AI's report can speak about.
 - *The report:* the template in [report-format.md](report-format.md), organ by
@@ -69,7 +70,8 @@ a separate study mode runs only with approval and consent.
   scan (safety.md).
 - A claim to beat the state of the art. The model is judged on held-out cases
   and its limits are written down.
-- Commercial. KiTS23's data is non-commercial (CC BY-NC-SA), so the model is too.
+- Commercial. It is a teaching demo; and if KiTS23 is ever added, its
+  non-commercial licence carries over to the model.
 
 ## Decisions
 
@@ -79,15 +81,16 @@ a separate study mode runs only with approval and consent.
 | 2 | Contribution | Open tool + honest AI report + learner study | The model race is crowded; the human side is not (related-work.md) |
 | 3 | Viewer | Three views, crosshair lines, PACS mouse (drag scrolls, right-drag windows, right-click menu), Sectra-like layout | How radiologists actually read; built and live |
 | 4 | Model | nnU-Net v2, 3D full resolution, ResEnc M, fold 0 | Fits a 3080 (9.1 GB in the authors' runs). In their like-for-like comparison on KiTS23 it scored 86.8 Dice against 81.1 for Auto3DSeg SegResNet, though NVIDIA's tuned SegResNet ensemble won the KiTS23 challenge |
-| 5 | Training data | KiTS23: kidney, tumour, cyst | Cysts are labelled, so the AI can make the mass-or-cyst call readers make; more cases than C4KC-KiTS |
-| 6 | Held out | Every patient on the site, plus a test group fixed before training | A model scored on what it trained on proves nothing; `ctrr ai` enforces it |
+| 5 | Training data | C4KC-KiTS, all 210 patients: kidney and tumour (built, checked) | The site's own dataset and licence (CC BY 3.0); every case passed the checks. No cysts, so the AI's report says cysts were not assessed |
+| 6 | Held out | 40 patients, every site case among them, fixed in `kits_split.json` before any check ran | A model scored on what it trained on proves nothing; `ctrr ai` enforces it |
 | 7 | AI scope | Kidney (mass, cyst) + anatomy from TotalSegmentator | A focused model done properly, an honest checklist for the rest |
 | 8 | Report | The author's template, measured or "not assessed", conclusion left blank | Safety (the drafter never diagnoses) and the scope-disclosure gap |
 | 9 | When the AI appears | After hand-in, on the public site | Lower automation bias; the study tests before against after |
 | 10 | Study | Learners, AI before vs after, real model output only, ethics approval and a supervisor | The open question the site is built to answer |
 | 11 | What to show employers | Live site, demo video, written walkthrough | The author's choice; a paper and published weights can follow |
 | 12 | Time | About 12 weeks full-time, plus a break over Christmas | The author's availability |
-| 13 | GPU | The author's RTX 3080; memory and drivers checked with `nvidia-smi` | A 10 GB card fits ResEnc M; a 12 GB one has room to spare |
+| 13 | GPU | The author's RTX 3080 with ResEnc M; a rented GPU with ResEnc L if time or memory runs short (training.md) | A 10 GB card fits ResEnc M; a 12 GB one has room to spare |
+| 14 | Cysts | **Open**: add KiTS23 for a cyst class, or not | For: the AI could make the mass-or-cyst call. Against: a non-commercial licence, more data work, and its patients overlap the held-out 40 |
 
 Record new decisions here with the reason, rather than changing old rows.
 
@@ -117,6 +120,6 @@ read. Here is the live site, and here is what we found."
 | Ethics approval is slow; committees often pause over December and January | Apply in week 1. The study is the last phase, and everything else stands on its own |
 | A 10 GB card runs out of memory | Plan with a lower memory target (ai-plan.md); fold 0 only |
 | Training takes longer than planned | It resumes; other work runs while it trains |
-| KiTS23 and C4KC-KiTS share patients | Match them before training, and hold out every site patient under both names |
-| KiTS scans are all contrast CT, and every patient has a mass | Written on the model card. The study adds cases without kidney tumours |
+| KiTS scans are all contrast CT, every patient has a mass, and cysts are not outlined | Written on the model card; the AI's report says cysts were not assessed. The study adds cases without kidney tumours |
+| If KiTS23 is added, it shares patients with C4KC-KiTS | Keep the 40 held-out patients out of it under both names |
 | The model is weaker than hoped | It is still an honest second reader; its failures are the teaching material, and the model card says so |

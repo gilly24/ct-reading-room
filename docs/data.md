@@ -28,19 +28,25 @@ to 47 MB. The viewer shows the first image before the rest arrive, so case size
 now decides how long the whole case takes to fill in, not how long the first
 image takes.
 
+All 210 studies are also the AI's training data: 23.5 GB of outlined CT plus
+3 GB of SEGs, split once into 170 training and 40 held-out patients
+([training.md](training.md)). The website shows only held-out patients.
+
 ### Synthetic phantom
 
 `pipeline/ctrr/phantom.py`. Nobody's scan; MIT like the code. It is the
 tutorial case and the pipeline's test fixture.
 
-## For training the AI (never shown on the site)
+## Possible later: KiTS23, for cysts
 
 | | |
 |---|---|
 | What | KiTS23: kidney, tumour and cyst outlines on contrast CT, 489 labelled cases |
-| Licence | CC BY-NC-SA: non-commercial, share-alike. The trained model carries the same terms |
-| Get it | the `kits23` package, on the training machine only; never committed |
-| Watch out | It includes the C4KC-KiTS patients the site shows. They are held out under both names (ai-plan.md) |
+| Why | C4KC-KiTS has no cyst outlines, so the model cannot tell a cyst from a mass |
+| Licence | CC BY-NC-SA: non-commercial, share-alike. A model trained on it carries the same terms |
+| Watch out | It includes the C4KC-KiTS patients, so the 40 held-out patients must stay out of it too |
+
+Not decided (project.md). Training uses C4KC-KiTS for now.
 
 TotalSegmentator's open "total" model (Apache 2.0) outlines anatomy on the site's
 cases. It is a model, not a dataset; some of its other tasks need a licence and

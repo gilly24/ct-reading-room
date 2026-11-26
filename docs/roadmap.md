@@ -18,6 +18,9 @@ Week 1 starts on Monday 30 November 2026. The dates are a guide; the order matte
       and a figure in each view; phone layout
 - [x] Simulator: hand in, score (found, false positives, size error, time),
       reference outlines and measurements, report drafted from measurements
+- [x] Training data: `ctrr train-data` checked all 210 C4KC-KiTS studies (all
+      passed) and wrote the nnU-Net dataset; a fixed split holds out 40
+      patients, every website case among them (training.md)
 - [x] AI plumbing: `ctrr ai-input` and `ctrr ai` (measured by `findings.py`,
       refuses trained patients, DICOM SEG out); on the site after hand-in, the
       AI's layer, score, findings and report
@@ -33,9 +36,11 @@ Week 1 starts on Monday 30 November 2026. The dates are a guide; the order matte
 **Week 1**
 - [ ] Meet the supervisor; start the ethics application (study-plan.md).
 - [ ] Training machine: `nvidia-smi`, WSL2 if on Windows, PyTorch with CUDA, nnU-Net v2.
-- [ ] Download KiTS23. Match its patients to the site's C4KC-KiTS cases.
-- [ ] `ctrr kits23-dataset`: splits fixed and committed, nnU-Net dataset written, `model.json` with `trainedOn`.
-- [ ] Plan, preprocess, start training (ai-plan.md).
+- [ ] Fetch the 210 studies there and run `ctrr train-data` (or copy the 12 GB
+      of NIfTI it wrote); compare its `validation.md` with training.md's result.
+- [ ] Plan and preprocess, copy `splits_final.json`, start fold 0: ResEnc M on
+      the 3080, or ResEnc L on a rented GPU (training.md).
+- [ ] `model.json` with the 170 training patients as `trainedOn`.
 
 **Week 2**, while it trains
 - [ ] Report drafter reworked to the template (report-format.md), with the checker. Tested on the phantom.
@@ -106,7 +111,7 @@ is approved.
 
 - A software paper in the Journal of Open Source Software.
 - The study as a conference abstract or poster.
-- The model and model card on Hugging Face, under KiTS23's non-commercial licence.
+- The model and model card on Hugging Face (C4KC-KiTS is CC BY 3.0; KiTS23 would make it non-commercial).
 - Auto3DSeg SegResNet trained to fit the 3080 and compared with nnU-Net.
 - Liver and pancreas lesions (AbdomenAtlas 3.0, licence to check).
 - Compare with a prior scan (Longitudinal-CT): lesions matched, growth measured.

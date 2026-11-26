@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -179,7 +179,6 @@ dependencies = [
     { name = "numpy" },
     { name = "pydicom" },
     { name = "scipy" },
-    { name = "simpleitk" },
 ]
 
 [package.optional-dependencies]
@@ -187,6 +186,9 @@ dev = [
     { name = "pylibjpeg" },
     { name = "pylibjpeg-openjpeg" },
     { name = "pytest" },
+]
+train = [
+    { name = "simpleitk" },
 ]
 
 [package.metadata]
@@ -200,9 +202,9 @@ requires-dist = [
     { name = "pylibjpeg-openjpeg", marker = "extra == 'dev'", specifier = ">=2.4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "scipy", specifier = ">=1.13" },
-    { name = "simpleitk", specifier = ">=2.4" },
+    { name = "simpleitk", marker = "extra == 'train'", specifier = ">=2.4" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "train"]
 
 [[package]]
 name = "duckdb"

@@ -37,7 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - run: uv sync --extra dev --locked
+      # `train` brings SimpleITK, so the NIfTI geometry tests run rather than skip.
+      - run: uv sync --extra dev --extra train --locked
       - run: uv run pytest
       # The committed tutorial case must be what the phantom builds today.
       - run: uv run ctrr phantom

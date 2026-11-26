@@ -12,7 +12,6 @@ import highdicom as hd
 import numpy as np
 import pytest
 
-from ctrr import nifti
 from ctrr.ai import Model, write_ai
 from ctrr.build import build_case
 from ctrr.bundle import write_index
@@ -22,6 +21,14 @@ from ctrr.phantom import make_phantom
 from ctrr.seg_io import CLASS_VALUE
 
 KIDNEY, TUMOUR = CLASS_VALUE["kidney"], CLASS_VALUE["tumour"]
+
+
+def _nifti():
+    """ctrr.nifti needs SimpleITK, the `train` extra; tests that use it skip without it."""
+    pytest.importorskip("SimpleITK")
+    from ctrr import nifti
+
+    return nifti
 
 
 @pytest.fixture()
@@ -73,23 +80,29 @@ def _json(folder, name):
     return json.loads((folder / name).read_text())
 
 
-def test_ct_nifti_keeps_values_and_geometry(case, tmp_path):
+def test_ct_nifti_is_written_exactly_like_the_training_set(case, tmp_path):
+    nifti = _nifti()
     import SimpleITK as sitk
+
+    from ctrr.train_data import ct_geometry, read_geometry
 
     ct = load_case_ct(case)
     path = nifti.write_ct(ct, tmp_path / "ct_0000.nii.gz")
     image = sitk.ReadImage(str(path))
-    values = sitk.GetArrayFromImage(image)
-    # Feet to head in the file: its first slice is our last.
-    assert np.array_equal(values[::-1], np.round(ct.hu).astype(np.int16))
-    assert np.allclose(image.GetOrigin(), ct.positions[-1])
-    # Voxel (column 0, row 0, last slice) is our first slice's top-left corner.
-    corner = image.TransformIndexToPhysicalPoint((0, 0, len(ct.positions) - 1))
-    assert np.allclose(corner, ct.positions[0])
-    assert np.linalg.det(np.reshape(image.GetDirection(), (3, 3))) > 0
+    assert image.GetPixelID() == sitk.sitkInt16
+    # Head first, as train_data writes: the file's first slice is our first.
+    assert np.array_equal(sitk.GetArrayFromImage(image), np.round(ct.hu).astype(np.int16))
+    _, written = read_geometry(path)
+    training = ct_geometry(ct)
+    for name in ("spacing", "origin", "direction"):
+        assert np.allclose(getattr(written, name), getattr(training, name), atol=1e-4), name
+    assert np.allclose(image.TransformIndexToPhysicalPoint((0, 0, 0)), ct.positions[0], atol=1e-3)
+    last = image.TransformIndexToPhysicalPoint((0, 0, len(ct.positions) - 1))
+    assert np.allclose(last, ct.positions[-1], atol=1e-3)
 
 
 def test_labels_round_trip_through_nifti(case, tmp_path):
+    nifti = _nifti()
     ct = load_case_ct(case)
     labels = _labels(case)
     path = nifti.write_labels(labels, ct, tmp_path / "labels.nii.gz")
@@ -97,6 +110,7 @@ def test_labels_round_trip_through_nifti(case, tmp_path):
 
 
 def test_a_prediction_on_another_grid_is_refused(case, tmp_path):
+    nifti = _nifti()
     import SimpleITK as sitk
 
     ct = load_case_ct(case)
@@ -189,6 +203,7 @@ def test_a_model_must_say_what_it_trained_on(tmp_path, model_file):
 
 
 def test_the_command_line_round_trip(case, model_file, tmp_path):
+    nifti = _nifti()
     cases = case.parent
     main(["--cases", str(cases), "ai-input", "phantom-01", "--out", str(tmp_path)])
     ct_file = tmp_path / "phantom-01_0000.nii.gz"
