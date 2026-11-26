@@ -1,8 +1,10 @@
 import type { AiFindings, CaseMeta, Lesion, Truth } from "../case/types";
 import { AI_MARK_PREFIX } from "../read/ai";
 import type { Mark } from "../read/marks";
+import { type Draft, referenceSource } from "../read/report";
 import type { LesionResult, Score } from "../read/scoring";
 import { REPO_URL } from "../site";
+import { DraftView } from "./DraftView";
 import { clock } from "./format";
 
 type Props = {
@@ -12,7 +14,7 @@ type Props = {
   score: Score | null;
   marks: Mark[];
   elapsed: number;
-  referenceReport: string;
+  referenceReport: Draft | null;
   showOutlines: boolean;
   showReference: boolean;
   onShowOutlines(v: boolean): void;
@@ -23,7 +25,7 @@ type Props = {
   ai: AiFindings | null;
   aiError: string | null;
   aiScore: Score | null;
-  aiReport: string;
+  aiReport: Draft | null;
   showAi: boolean;
   onShowAi(v: boolean): void;
 };
@@ -77,7 +79,7 @@ export function AnswerPanel(props: Props) {
         {score.falsePositives.length > 0 && (
           <p className="small">
             Measurements on no outlined lesion: {score.falsePositives.map((id) => `#${number(id)}`).join(", ")}.
-            {truth.lesions.every((l) => l.kind !== "cyst") &&
+            {!referenceSource(truth).lesionKinds.includes("cyst") &&
               " Cysts were not outlined in this dataset, so a cyst you measured counts here too."}
           </p>
         )}
@@ -107,7 +109,7 @@ export function AnswerPanel(props: Props) {
       <section className="panel-section">
         <details>
           <summary>Report drafted from the reference</summary>
-          <pre className="report">{props.referenceReport}</pre>
+          {props.referenceReport && <DraftView draft={props.referenceReport} />}
         </details>
       </section>
 
@@ -206,7 +208,7 @@ function AiSection({ meta, ai, aiError, aiScore, score, aiReport, showAi, onShow
       </div>
       <details>
         <summary>Report drafted from the AI's outlines</summary>
-        <pre className="report">{aiReport}</pre>
+        {aiReport && <DraftView draft={aiReport} />}
       </details>
       <p className="muted small model-note">
         {ai.note}{" "}

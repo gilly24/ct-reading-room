@@ -92,6 +92,8 @@ export type AiFindings = {
     version: string;
     architecture: string;
     trainedOn: { dataset: string; patients: number };
+    /** Every class the model can output, whether or not this case has any: what the AI looked for. */
+    outlines: string[];
     /** Path of the model card in the repository, or null. */
     card: string | null;
   };

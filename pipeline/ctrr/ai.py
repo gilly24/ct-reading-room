@@ -131,6 +131,9 @@ def write_ai(case_folder: Path, prediction: np.ndarray, model: Model) -> Path:
             "version": model.version,
             "architecture": model.architecture,
             "trainedOn": {"dataset": model.dataset, "patients": len(model.trained_on)},
+            # Every class the model can output, found in this case or not: the report
+            # may only say "no mass outlined by the AI" about what the AI outlines.
+            "outlines": sorted(set(model.labels.values()), key=CLASS_VALUE.get),
             "card": model.card,
         },
         "heldOut": True,

@@ -3,13 +3,14 @@ import { type LabelVolume, loadAi, loadCase, loadLabels, loadTruth } from "../ca
 import type { AiFindings, CaseMeta, Lesion, Truth } from "../case/types";
 import { marksFromLesions } from "../read/ai";
 import type { Mark, MarkKind } from "../read/marks";
-import { draftReport, itemFromLesion, itemFromMark } from "../read/report";
+import { READER, aiSource, draftReport, itemFromLesion, itemFromMark, referenceSource } from "../read/report";
 import { scoreRead } from "../read/scoring";
 import type { ToolChoice } from "../viewer/cornerstone";
 import { type ViewName, VIEWS } from "../viewer/mpr";
 import { PRESETS } from "../viewer/presets";
 import { type Layout, type MarkGeometry, Viewer, type ViewerHandle, VIEW_TITLES } from "../viewer/Viewer";
 import { AnswerPanel } from "./AnswerPanel";
+import { Refused } from "./DraftView";
 import { clock } from "./format";
 import { Icon, type IconName } from "./Icon";
 import { Menu, type MenuEntry } from "./Menu";
@@ -106,11 +107,11 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
   const organOf = useCallback((id: string) => choices[id]?.organ ?? defaultOrgan, [choices, defaultOrgan]);
 
   const draft = useMemo(
-    () => draftReport(meta, marks.map((m) => itemFromMark(m, organOf(m.id))), "your measurements"),
+    () => draftReport(meta, marks.map((m) => itemFromMark(m, organOf(m.id))), READER),
     [meta, marks, organOf],
   );
   useEffect(() => {
-    if (!reportEdited) setReport(draft);
+    if (!reportEdited) setReport(draft.problems.length === 0 ? draft.text : "");
   }, [draft, reportEdited]);
 
   useEffect(() => {
@@ -195,7 +196,7 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
     [truth, marks, meta],
   );
   const referenceReport = useMemo(
-    () => (truth ? draftReport(meta, truth.lesions.map(itemFromLesion), "the reference outlines") : ""),
+    () => (truth ? draftReport(meta, truth.lesions.map(itemFromLesion), referenceSource(truth)) : null),
     [truth, meta],
   );
   // The AI is scored against the reference exactly as the reader is.
@@ -207,7 +208,7 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
     [truth, ai, meta],
   );
   const aiReport = useMemo(
-    () => (ai ? draftReport(meta, ai.lesions.map(itemFromLesion), "the AI's outlines") : ""),
+    () => (ai ? draftReport(meta, ai.lesions.map(itemFromLesion), aiSource(ai)) : null),
     [ai, meta],
   );
 
@@ -425,6 +426,7 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
             readOnly={phase !== "reading"}
             aria-label="Report"
           />
+          {!reportEdited && draft.problems.length > 0 && <Refused draft={draft} />}
           {reportEdited && phase === "reading" && (
             <button className="link small" onClick={() => setReportEdited(false)}>
               Redraft from my measurements
