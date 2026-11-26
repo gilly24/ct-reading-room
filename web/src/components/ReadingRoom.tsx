@@ -18,7 +18,7 @@ type Phase = "reading" | "reviewing";
 type MarkChoice = { kind: MarkKind; organ: string };
 
 /** What the left mouse button does. The right button always sets the window, the middle button pans. */
-const TOOL_BUTTONS: { tool: ToolChoice; label: string; key: string; hint: string }[] = [
+export const TOOL_BUTTONS: { tool: ToolChoice; label: string; key: string; hint: string }[] = [
   { tool: "scroll", label: "Scroll", key: "s", hint: "Drag up and down to move through the images (or use the wheel)" },
   { tool: "window", label: "Window", key: "w", hint: "Drag to change brightness and contrast (or right-drag)" },
   { tool: "pan", label: "Pan", key: "p", hint: "Drag to move the image (or middle-drag, or Shift-drag)" },
