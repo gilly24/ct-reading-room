@@ -48,9 +48,15 @@ Every push to `main` builds and deploys again.
 
    ```bash
    cd pipeline
-   uv run ctrr fetch-kits --count 10 --max-slices 150
+   uv run ctrr fetch-kits --count 5
    uv run ctrr build-kits
    ```
+
+   `fetch-kits` takes patients in ID order and skips studies over 300 slices
+   (`--max-slices`), so this gives exactly the five website cases (KiTS-00002,
+   -00003, -00004, -00006 and -00007), none of which the AI trains on. A larger
+   `--count` can take patients it did train on: to add a case, pick it from the
+   test list in [training.md](training.md) and fetch it with `--patients`.
 
 2. Create the bucket: **R2 → Create bucket**, named `ct-reading-room-cases`.
    Leave public access off; the Worker reads it.

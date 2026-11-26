@@ -20,7 +20,7 @@ tests in `tests/test_train_data.py` are skipped. CI installs both.
 | command | does |
 |---|---|
 | `uv run ctrr phantom` | rebuilds `web/public/cases/phantom-01` (committed) |
-| `uv run ctrr fetch-kits --count N [--max-slices S] [--patients ID ...]` | downloads C4KC-KiTS studies into `.data/raw/`, resumable |
+| `uv run ctrr fetch-kits --count N [--max-slices S] [--patients ID ...]` | downloads C4KC-KiTS studies into `.data/raw/`, resumable; skips studies over S slices (default 300) |
 | `uv run ctrr build-kits` | builds a case from every fetched study |
 | `uv run ctrr index` | rewrites `cases/index.json` |
 | `uv run ctrr train-data [--raw DIR] [--out DIR]` | checks every fetched study and writes the nnU-Net training set and its report ([training.md](training.md)); writes no website cases |

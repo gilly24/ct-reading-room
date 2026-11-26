@@ -13,8 +13,14 @@ export function caseUrl(caseId: string, path: string): string {
   return new URL(`${caseId}/${path}`, CASES_URL).href;
 }
 
+/** The file is not there, as for a case link with a mistyped name. */
+export class NotFound extends Error {}
+
 async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
+  if (response.status === 404) throw new NotFound(`${url}: 404`);
+  // A host that answers a missing file with the site's own page (Vite's dev server does) has not found it either.
+  if (response.ok && response.headers.get("content-type")?.includes("text/html")) throw new NotFound(`${url}: not found`);
   if (!response.ok) throw new Error(`${url}: ${response.status}`);
   return (await response.json()) as T;
 }

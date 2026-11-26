@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type LabelVolume, loadAi, loadCase, loadLabels, loadTruth } from "../case/load";
+import { citationParts, licenceUrl } from "../case/credit";
+import { type LabelVolume, NotFound, loadAi, loadCase, loadLabels, loadTruth } from "../case/load";
 import type { AiFindings, CaseMeta, Lesion, Truth } from "../case/types";
 import { marksFromLesions } from "../read/ai";
 import type { Mark, MarkKind } from "../read/marks";
@@ -7,6 +8,7 @@ import { READER, aiSource, draftReport, itemFromLesion, itemFromMark, referenceS
 import { scoreRead } from "../read/scoring";
 import type { ToolChoice } from "../viewer/cornerstone";
 import { type ViewName, VIEWS } from "../viewer/mpr";
+import { REPO_URL } from "../site";
 import { PRESETS } from "../viewer/presets";
 import { type Layout, type MarkGeometry, Viewer, type ViewerHandle, VIEW_TITLES } from "../viewer/Viewer";
 import { AnswerPanel } from "./AnswerPanel";
@@ -43,7 +45,7 @@ function useMedia(query: string): boolean {
 
 export function ReadingRoom({ caseId, nextCaseId }: { caseId: string; nextCaseId: string | null }) {
   const [meta, setMeta] = useState<CaseMeta | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<"missing" | "failed" | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -52,13 +54,29 @@ export function ReadingRoom({ caseId, nextCaseId }: { caseId: string; nextCaseId
     setError(null);
     loadCase(caseId)
       .then((m) => live && setMeta(m))
-      .catch((e) => live && setError(String(e)));
+      .catch((e) => {
+        if (!live) return;
+        if (!(e instanceof NotFound)) console.error(e);
+        setError(e instanceof NotFound ? "missing" : "failed");
+      });
     return () => {
       live = false;
     };
   }, [caseId]);
 
-  if (error) return <div className="page-message">This case could not be opened. {error}</div>;
+  if (error)
+    return (
+      <div className="page-message">
+        <p>
+          {error === "missing"
+            ? `There is no case called “${caseId}”.`
+            : "This case could not be opened. Check your connection, then reload the page."}
+        </p>
+        <p>
+          <a href="#/">Back to the cases</a>
+        </p>
+      </div>
+    );
   if (!meta) return <div className="page-message">Opening case…</div>;
   // A new attempt remounts everything, which clears the viewer's measurements too.
   return (
@@ -364,7 +382,11 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
         <section className="panel-section">
           <h2>Measurements {marks.length > 0 && <span className="count">{marks.length}</span>}</h2>
           {marks.length === 0 ? (
-            <p className="muted small">None yet. Choose Measure (M) and drag across a lesion.</p>
+            <p className="muted small">
+              {phase === "reading"
+                ? "None yet. Choose Measure (M) and drag across a lesion."
+                : "None. You handed in without measuring anything."}
+            </p>
           ) : (
             <ol className="marks">
               {marks.map((m, i) => (
@@ -469,9 +491,17 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
           <section className="panel-section">
             <h2>AI second reader</h2>
             <p className="muted small">
-              {meta.ai
-                ? "An AI has read this case too. Its findings appear beside the answers when you hand in, so they cannot steer your read."
-                : "Not run on this case yet. The model that will find and measure tumours is being trained (docs/roadmap.md)."}
+              {meta.ai ? (
+                "An AI has read this case too. Its findings appear beside the answers when you hand in, so they cannot steer your read."
+              ) : (
+                <>
+                  Not run on this case yet. The model that will find and measure tumours is being trained (
+                  <a href={`${REPO_URL}/blob/main/docs/roadmap.md`} target="_blank" rel="noopener noreferrer">
+                    roadmap
+                  </a>
+                  ).
+                </>
+              )}
             </p>
           </section>
         )}
@@ -479,17 +509,37 @@ function Read({ meta, nextCaseId, onRestart }: { meta: CaseMeta; nextCaseId: str
         <footer className="panel-foot muted small">
           <p>
             Images: {meta.source.dataset}
-            {meta.source.patient ? ` (${meta.source.patient})` : ""}, licence {meta.source.licence}.{" "}
+            {meta.source.patient ? ` (${meta.source.patient})` : ""}, licence <Licence name={meta.source.licence} />.{" "}
             {meta.source.url ? (
               <a href={meta.source.url} target="_blank" rel="noopener noreferrer">
                 Source
               </a>
             ) : null}
           </p>
-          <p>{meta.source.citation}</p>
+          <p>
+            {citationParts(meta.source.citation).map((part, i) =>
+              part.href ? (
+                <a key={i} href={part.href} target="_blank" rel="noopener noreferrer">
+                  {part.text}
+                </a>
+              ) : (
+                part.text
+              ),
+            )}
+          </p>
         </footer>
       </aside>
     </div>
+  );
+}
+
+function Licence({ name }: { name: string }) {
+  const href = licenceUrl(name);
+  if (!href) return <>{name}</>;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {name}
+    </a>
   );
 }
 
