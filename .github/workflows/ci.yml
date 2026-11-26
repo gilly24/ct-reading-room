@@ -28,6 +28,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # The Cloudflare deploy, without deploying: catches a bad wrangler.jsonc,
+      # a missing build output or a broken Worker on every pull request.
+      - run: pnpm deploy:check
 
   pipeline:
     runs-on: ubuntu-latest
